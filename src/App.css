@@ -91,6 +91,13 @@
   gap: 8px;
 }
 
+.panel__texto {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #33404d;
+  margin: 0 0 4px;
+}
+
 .panel__hint {
   font-size: 13px;
   color: #5b6672;

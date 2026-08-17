@@ -5,6 +5,7 @@ import { TablaGestion } from './components/TablaGestion';
 import { TablaCubicacion } from './components/TablaCubicacion';
 import { PanelCatalogo } from './components/PanelCatalogo';
 import { PanelResumen } from './components/PanelResumen';
+import { PanelInstrucciones } from './components/PanelInstrucciones';
 import { PARAMETROS_DEFAULT, gestionDefault, nuevaFilaGestion, nuevaFilaProduccion, produccionDefault, SECCIONES } from './data/plantilla';
 import { calcularGestion, calcularProduccion, calcularResumen } from './calc';
 import type { GestionRow, ParametrosCurso, ProduccionRow } from './types';
@@ -29,7 +30,7 @@ function estadoInicial(): Estado {
   return { parametros: PARAMETROS_DEFAULT, gestion: gestionDefault(), produccion: produccionDefault() };
 }
 
-type Vista = 'cubicacion' | 'catalogo' | 'resumen';
+type Vista = 'cubicacion' | 'catalogo' | 'resumen' | 'instrucciones';
 
 function App() {
   const { catalogo } = useCatalog();
@@ -102,6 +103,9 @@ function App() {
         <button className={vista === 'resumen' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'} onClick={() => setVista('resumen')}>
           Resumen
         </button>
+        <button className={vista === 'instrucciones' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'} onClick={() => setVista('instrucciones')}>
+          Instrucciones
+        </button>
       </nav>
 
       {vista === 'cubicacion' && (
@@ -115,6 +119,7 @@ function App() {
       )}
       {vista === 'catalogo' && <PanelCatalogo />}
       {vista === 'resumen' && <PanelResumen resumen={resumen} nCursos={estado.parametros.nCursos} />}
+      {vista === 'instrucciones' && <PanelInstrucciones />}
 
       <footer className="app__footer">
         Datos guardados solo en este navegador (localStorage) — nada se envía a un servidor. Catálogo de tasas
