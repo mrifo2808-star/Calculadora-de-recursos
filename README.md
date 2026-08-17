@@ -49,8 +49,9 @@ cada push a `main`. Pasos para activarlo la primera vez:
 
 1. En GitHub → Settings → Pages, elegir **Source: GitHub Actions**.
 2. Verificar que `vite.config.ts` tenga `base: '/<nombre-del-repo>/'` igual al nombre real
-   del repositorio (por defecto está en `/welearn-calculadora-recursos/`). Si el repo se
-   llama distinto, actualizar esa línea antes de hacer push.
+   del repositorio (actualmente `/Calculadora-de-recursos/`, para
+   github.com/mrifo2808-star/Calculadora-de-recursos). Si el repo se renombra, actualizar
+   esa línea antes de hacer push.
 3. Hacer push a `main` — el Action queda visible en la pestaña "Actions" del repo.
 
 ## Actualizar el catálogo de tasas

@@ -6,5 +6,5 @@ import react from '@vitejs/plugin-react'
 // https://<usuario>.github.io/<repo>/
 export default defineConfig({
   plugins: [react()],
-  base: '/welearn-calculadora-recursos/',
+  base: '/Calculadora-de-recursos/',
 })
