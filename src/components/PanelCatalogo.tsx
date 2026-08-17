@@ -13,6 +13,8 @@ export function PanelCatalogo() {
   const [filtro, setFiltro] = useState('');
   const [soloValidados, setSoloValidados] = useState(true);
   const [mensajeImport, setMensajeImport] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+  const [descargando, setDescargando] = useState(false);
+  const [cargando, setCargando] = useState(false);
   const inputArchivoRef = useRef<HTMLInputElement>(null);
 
   const filas = useMemo(() => {
@@ -27,16 +29,28 @@ export function PanelCatalogo() {
   const validados = catalogo.filter((r) => r.estado === 'Validado').length;
 
   const descargar = async () => {
-    const { descargarCatalogoExcel } = await import('../excelCatalogo');
-    descargarCatalogoExcel(catalogo);
+    setDescargando(true);
+    try {
+      const { descargarCatalogoExcel } = await import('../excelCatalogo');
+      descargarCatalogoExcel(catalogo);
+    } finally {
+      setDescargando(false);
+    }
   };
 
   const elegirArchivo = () => inputArchivoRef.current?.click();
+
+  const restaurarOriginal = () => {
+    if (!confirm('Esto descarta el catálogo cargado desde Excel en este navegador y vuelve al catálogo original. ¿Continuar?')) return;
+    restaurarCatalogoOriginal();
+    setMensajeImport(null);
+  };
 
   const cargarArchivo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = e.target.files?.[0];
     e.target.value = ''; // permite volver a elegir el mismo archivo si se corrige y reintenta
     if (!archivo) return;
+    setCargando(true);
     try {
       const { catalogoDesdeArchivoExcel } = await import('../excelCatalogo');
       const resultado = await catalogoDesdeArchivoExcel(archivo);
@@ -51,6 +65,8 @@ export function PanelCatalogo() {
       setMensajeImport({ tipo: resultado.erroresFila.length > 0 ? 'error' : 'ok', texto: partes.join(' ') });
     } catch {
       setMensajeImport({ tipo: 'error', texto: 'No se pudo leer el archivo. Verifica que sea un .xlsx exportado desde aquí o con las mismas columnas.' });
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -60,15 +76,15 @@ export function PanelCatalogo() {
         <h2>Catálogo de tasas DI / DG / SOP</h2>
         <div className="panel__acciones">
           {esPersonalizado && (
-            <button type="button" className="btn-secundario" onClick={restaurarCatalogoOriginal}>
+            <button type="button" className="btn-secundario" onClick={restaurarOriginal}>
               Restaurar catálogo original
             </button>
           )}
-          <button type="button" className="btn-secundario" onClick={elegirArchivo}>
-            ⬆ Cargar catálogo actualizado (Excel)
+          <button type="button" className="btn-secundario" onClick={elegirArchivo} disabled={cargando}>
+            {cargando ? 'Cargando…' : '⬆ Cargar catálogo actualizado (Excel)'}
           </button>
-          <button type="button" className="btn-secundario" onClick={descargar}>
-            ⬇ Descargar catálogo (Excel)
+          <button type="button" className="btn-secundario" onClick={descargar} disabled={descargando}>
+            {descargando ? 'Generando…' : '⬇ Descargar catálogo (Excel)'}
           </button>
           <input
             ref={inputArchivoRef}
@@ -93,8 +109,11 @@ export function PanelCatalogo() {
         </p>
       )}
       {mensajeImport && (
-        <p className={mensajeImport.tipo === 'ok' ? 'panel__hint panel__hint--ok' : 'panel__hint panel__hint--aviso'}>
-          {mensajeImport.texto}
+        <p className={`mensaje panel__hint ${mensajeImport.tipo === 'ok' ? 'panel__hint--ok' : 'panel__hint--aviso'}`}>
+          <span>{mensajeImport.texto}</span>
+          <button type="button" className="mensaje__cerrar" onClick={() => setMensajeImport(null)} aria-label="Cerrar mensaje">
+            ✕
+          </button>
         </p>
       )}
       <div className="catalogo-filtros">
@@ -124,20 +143,28 @@ export function PanelCatalogo() {
             </tr>
           </thead>
           <tbody>
-            {filas.map((r) => (
-              <tr key={r.id}>
-                <td>
-                  <span className={estadoClase[r.estado]}>{r.estado}</span>
+            {filas.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="tabla__vacio">
+                  Ningún recurso coincide con «{filtro}»{soloValidados ? ' entre los validados' : ''}.
                 </td>
-                <td>{r.tipo}</td>
-                <td>{r.nombreVisible}</td>
-                <td>{r.extension}</td>
-                <td>{r.unidad}</td>
-                <td className="num">{r.di != null ? fmt(r.di) : '—'}</td>
-                <td className="num">{r.dg != null ? fmt(r.dg) : '—'}</td>
-                <td className="num">{r.sop != null ? fmt(r.sop) : '—'}</td>
               </tr>
-            ))}
+            ) : (
+              filas.map((r) => (
+                <tr key={r.id}>
+                  <td>
+                    <span className={estadoClase[r.estado]}>{r.estado}</span>
+                  </td>
+                  <td>{r.tipo}</td>
+                  <td>{r.nombreVisible}</td>
+                  <td>{r.extension}</td>
+                  <td>{r.unidad}</td>
+                  <td className="num">{r.di != null ? fmt(r.di) : '—'}</td>
+                  <td className="num">{r.dg != null ? fmt(r.dg) : '—'}</td>
+                  <td className="num">{r.sop != null ? fmt(r.sop) : '—'}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

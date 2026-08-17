@@ -50,7 +50,7 @@ export function TablaCubicacion({ rows, nSemanas, catalogo, onChange, onAdd }: P
           <div key={seccion} className="seccion">
             <h3>{seccion}</h3>
             <div className="tabla-scroll">
-              <table className="tabla">
+              <table className="tabla tabla--fija-primera">
                 <thead>
                   <tr>
                     <th>Tarea</th>
@@ -74,6 +74,7 @@ export function TablaCubicacion({ rows, nSemanas, catalogo, onChange, onAdd }: P
                           value={r.tarea}
                           onChange={(e) => update(r.rowId, { tarea: e.target.value })}
                           placeholder="Nombre de la tarea"
+                          title={r.tarea}
                         />
                       </td>
                       <td>

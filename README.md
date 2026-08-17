@@ -99,6 +99,19 @@ desde Excel) vive en `CatalogContext` (`src/CatalogContext.tsx`) y se accede con
 `TablaCubicacion`, `PanelCatalogo`, `calc.ts`) lo reciben como parámetro/prop en vez de
 importar `CATALOGO_BASE` directamente.
 
+## Notas de interfaz
+
+- El `<header>` es `position: sticky` (siempre visible el total HH) y la barra de tabs
+  se pega justo debajo usando la variable CSS `--header-h`, que `App.tsx` mantiene
+  actualizada con un `ResizeObserver` sobre el header (no un valor fijo en px) — si se
+  edita el layout del header y su alto cambia según el contenido, la barra de tabs se
+  sigue acomodando sola.
+- La tabla de Cubicación usa la clase `tabla--fija-primera` para fijar la columna
+  "Tarea" con `position: sticky; left: 0` mientras se hace scroll horizontal (la tabla
+  tiene 10 columnas y no siempre entra en una pantalla).
+- El pill ámbar de "Pendiente de catalogar" es intencional (no rojo): es el estado
+  normal de una fila de plantilla sin insumo todavía, no un error.
+
 ## Estructura
 
 ```

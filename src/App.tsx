@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { PanelParametros } from './components/PanelParametros';
 import { TablaGestion } from './components/TablaGestion';
@@ -34,10 +34,24 @@ function App() {
   const { catalogo } = useCatalog();
   const [estado, setEstado] = useState<Estado>(estadoInicial);
   const [vista, setVista] = useState<Vista>('cubicacion');
+  const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
   }, [estado]);
+
+  // El header es sticky y la barra de tabs se pega justo debajo de el: se mide su
+  // alto real (cambia con el ancho de pantalla y con textos mas largos) en vez de
+  // hardcodear un offset, para que la barra de tabs no quede tapada ni deje un hueco.
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const actualizarAlto = () => document.documentElement.style.setProperty('--header-h', `${el.offsetHeight}px`);
+    actualizarAlto();
+    const observer = new ResizeObserver(actualizarAlto);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const resumen = useMemo(() => {
     const produccionCalc = calcularProduccion(estado.produccion, estado.parametros.nSemanas, catalogo);
@@ -52,7 +66,7 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app__header">
+      <header className="app__header" ref={headerRef}>
         <div>
           <h1>WeLearn — Calculadora de Recursos</h1>
           <p className="app__subtitulo">Cubicación de horas DI / DG / SOP para proyectos de producción de cursos</p>

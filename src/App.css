@@ -17,6 +17,10 @@
   color: #fff;
   border-radius: 12px;
   padding: 24px 28px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  box-shadow: 0 8px 16px -12px rgba(16, 36, 62, 0.5);
 }
 
 .app__header h1 {
@@ -175,8 +179,35 @@
   vertical-align: middle;
 }
 
+.tabla tbody tr:hover td {
+  background: #f8fafc;
+}
+
 .tabla tfoot td {
   font-weight: 700;
+  background: #f8fafc;
+}
+
+/* Primera columna fija: en tablas anchas (Cubicacion tiene 10 columnas) permite
+   scrollear horizontalmente sin perder de vista a que tarea corresponde la fila. */
+.tabla--fija-primera th:first-child,
+.tabla--fija-primera td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  box-shadow: 1px 0 0 #dfe4ea;
+}
+
+.tabla--fija-primera th:first-child {
+  background: #f1f4f8;
+  z-index: 2;
+}
+
+.tabla--fija-primera td:first-child {
+  background: #fff;
+}
+
+.tabla--fija-primera tbody tr:hover td:first-child {
   background: #f8fafc;
 }
 
@@ -246,8 +277,10 @@
 }
 
 .pill--pendiente {
-  background: #fdecea;
-  color: #b3261e;
+  /* Ambar, no rojo: significa "sin insumo todavia" (estado normal de una fila
+     nueva/plantilla), no un error. El rojo se reserva para acciones destructivas. */
+  background: #fef3e2;
+  color: #a15c00;
 }
 
 .pill--vacia {
@@ -279,6 +312,7 @@
   padding: 8px 14px;
   border-radius: 8px;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 
 .btn-secundario:hover {
@@ -286,9 +320,54 @@
   color: #fff;
 }
 
+.btn-secundario:disabled {
+  opacity: 0.6;
+  cursor: progress;
+  background: #fff;
+  color: #10243e;
+}
+
 .btn-secundario--sm {
   padding: 5px 10px;
   font-size: 12px;
+}
+
+.mensaje {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mensaje__cerrar {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 0 0 8px;
+  opacity: 0.7;
+}
+
+.mensaje__cerrar:hover {
+  opacity: 1;
+}
+
+.tabla__vacio {
+  text-align: center;
+  color: #8a94a0;
+  font-style: italic;
+  padding: 18px 10px;
+}
+
+/* Foco visible consistente con la identidad del producto, sin quitarle
+   accesibilidad al focus nativo del navegador. */
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid #10243e;
+  outline-offset: 2px;
 }
 
 .seccion {
@@ -312,6 +391,12 @@
 .tabs {
   display: flex;
   gap: 8px;
+  position: sticky;
+  top: var(--header-h, 96px);
+  z-index: 20;
+  background: #f4f6f8;
+  padding: 10px 0 2px;
+  margin: -10px 0 -2px;
 }
 
 .tabs__btn {
@@ -323,9 +408,15 @@
   padding: 10px 18px;
   border-radius: 8px 8px 0 0;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.tabs__btn--activo {
+.tabs__btn:hover {
+  border-color: #10243e;
+}
+
+.tabs__btn--activo,
+.tabs__btn--activo:hover {
   background: #10243e;
   color: #fff;
   border-color: #10243e;
