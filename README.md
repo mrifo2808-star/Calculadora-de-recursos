@@ -22,8 +22,10 @@ Total   = HH DI + HH DG + HH SOP
 ```
 
 Solo los recursos con Estado = **Validado** en el catálogo son seleccionables en la
-cascada Tipo → Recurso (33 de 41 recursos en el RC7 original). Una fila sin Tipo/Recurso
-completo queda como "Pendiente de catalogar" y no suma horas.
+cascada Tipo → Recurso. Una fila sin Tipo/Recurso completo queda como "Pendiente de
+catalogar" y no suma horas. Se excluyeron del catálogo (respecto al RC7 original) los 2
+recursos que no tenían ningún dato de tiempo DI/DG/SOP registrado ("Grafico plano" y
+"Animacion T3"): sin ese dato no aportan al cálculo y solo generaban filas en 0.
 
 Los cargos de "Gestión del proyecto" (JP, GE, TLs, etc.) usan la misma fórmula de Factor,
 pero no consumen el catálogo de recursos — su HH unitaria es editable directamente.
@@ -56,10 +58,13 @@ cada push a `main`. Pasos para activarlo la primera vez:
 
 ## Actualizar el catálogo de tasas
 
-El catálogo vive en `src/data/catalogo.ts` (un array plano, sin build step de Excel). Para
-incorporar un cambio de tarifas:
+El catálogo vive en `src/data/catalogo.ts` (un array plano, sin build step de Excel). En
+la pestaña "Catálogo" de la app hay un botón **Descargar catálogo (CSV)** que exporta la
+tabla completa (Estado, Tipo, Nombre visible, Extensión, Unidad, DI/DG/SOP, Fuente,
+Observaciones) para revisarla o corregirla fuera de la app (Excel/Sheets). Para incorporar
+un cambio de tarifas después de corregir el CSV:
 
-1. Editar/agregar la fila correspondiente en `CATALOGO`.
+1. Editar/agregar la fila correspondiente en `CATALOGO` (`src/data/catalogo.ts`).
 2. Si el recurso pasa a `estado: 'Validado'`, aparece automáticamente en la cascada
    Tipo → Recurso (no requiere tocar ningún otro archivo).
 3. Las filas de plantilla por defecto de Cubicación/Gestión están en
@@ -72,7 +77,8 @@ src/
   types.ts              tipos compartidos (RecursoCatalogo, ProduccionRow, GestionRow…)
   calc.ts                fórmulas de cálculo (factor, HH por fila, resumen/totales)
   format.ts              formato numérico es-CL
-  data/catalogo.ts        catálogo de 41 recursos (tasas DI/DG/SOP)
+  data/catalogo.ts        catálogo de recursos (tasas DI/DG/SOP)
+  export.ts               generación de CSV para descargar el catálogo
   data/plantilla.ts       filas por defecto de Gestión y Cubicación
   components/            CascadaSelector, TablaGestion, TablaCubicacion, PanelCatalogo,
                           PanelResumen, PanelParametros

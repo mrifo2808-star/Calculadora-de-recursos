@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CATALOGO } from '../data/catalogo';
 import { fmt } from '../format';
+import { catalogoACSV, descargarCSV } from '../export';
 
 const estadoClase: Record<string, string> = {
   Validado: 'pill pill--ok',
@@ -23,12 +24,23 @@ export function PanelCatalogo() {
 
   const validados = CATALOGO.filter((r) => r.estado === 'Validado').length;
 
+  const descargar = () => {
+    const fecha = new Date().toISOString().slice(0, 10);
+    descargarCSV(`catalogo-welearn-${fecha}.csv`, catalogoACSV(CATALOGO));
+  };
+
   return (
     <section className="panel">
-      <h2>Catálogo de tasas DI / DG / SOP</h2>
+      <div className="panel__header">
+        <h2>Catálogo de tasas DI / DG / SOP</h2>
+        <button type="button" className="btn-secundario" onClick={descargar}>
+          ⬇ Descargar catálogo (CSV)
+        </button>
+      </div>
       <p className="panel__hint">
         Fuente de verdad de tarifas (horas). Solo <strong>Validado</strong> es seleccionable en Cubicación (
-        {validados} de {CATALOGO.length} recursos). Pendiente/Histórico quedan como referencia.
+        {validados} de {CATALOGO.length} recursos). Pendiente/Histórico quedan como referencia. Descarga el CSV para
+        revisar o corregir tarifas fuera de la app (Excel/Sheets) — ver README para cómo reincorporar los cambios.
       </p>
       <div className="catalogo-filtros">
         <input
