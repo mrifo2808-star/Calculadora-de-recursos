@@ -46,6 +46,10 @@ export function AccessGate({ children }: { children: ReactNode }) {
 
   const cerrarSesion = () => {
     supabase.auth.signOut();
+    // Evita que en un equipo compartido la siguiente persona vea la clave anterior
+    // con el boton "mostrar clave" del formulario de login.
+    setClave('');
+    setMostrarClave(false);
   };
 
   if (sesion === 'cargando') {
@@ -88,6 +92,11 @@ export function AccessGate({ children }: { children: ReactNode }) {
     if (errorLogin) {
       setError(true);
       setClave('');
+    } else {
+      // Limpia la clave del formulario en memoria — si la sesion despues expira o se
+      // cierra, el input no debe reaparecer con la clave anterior ya tipeada.
+      setClave('');
+      setMostrarClave(false);
     }
     // Si fue exitoso, onAuthStateChange actualiza `sesion` solo y este componente
     // re-renderiza mostrando `children`.
