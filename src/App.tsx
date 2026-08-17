@@ -9,6 +9,7 @@ import { PARAMETROS_DEFAULT, gestionDefault, nuevaFilaGestion, nuevaFilaProducci
 import { calcularGestion, calcularProduccion, calcularResumen } from './calc';
 import type { GestionRow, ParametrosCurso, ProduccionRow } from './types';
 import { useCatalog } from './CatalogContext';
+import { useAccess } from './AccessGate';
 
 const STORAGE_KEY = 'welearn-calculadora-v1';
 
@@ -32,6 +33,7 @@ type Vista = 'cubicacion' | 'catalogo' | 'resumen';
 
 function App() {
   const { catalogo } = useCatalog();
+  const { cerrarSesion } = useAccess();
   const [estado, setEstado] = useState<Estado>(estadoInicial);
   const [vista, setVista] = useState<Vista>('cubicacion');
   const headerRef = useRef<HTMLElement>(null);
@@ -117,6 +119,9 @@ function App() {
       <footer className="app__footer">
         Datos guardados solo en este navegador (localStorage) — nada se envía a un servidor. Catálogo de tasas
         replicado desde WeLearn_Calculadora_Recursos_v1.3_RC7_EDITABLE.xlsx.
+        <button type="button" className="app__cerrar-sesion" onClick={cerrarSesion}>
+          Cerrar sesión
+        </button>
       </footer>
     </div>
   );

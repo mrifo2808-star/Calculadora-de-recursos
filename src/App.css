@@ -60,6 +60,22 @@
   padding: 12px 0 0;
 }
 
+.app__cerrar-sesion {
+  display: block;
+  margin: 6px auto 0;
+  border: none;
+  background: transparent;
+  color: #6b7785;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.app__cerrar-sesion:hover {
+  color: #10243e;
+}
+
 .panel {
   background: #fff;
   border: 1px solid #dfe4ea;

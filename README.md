@@ -5,9 +5,12 @@ versión web de `WeLearn_Calculadora_Recursos_v1.3_RC7_EDITABLE.xlsx` (veredicto
 RC7): mismo catálogo de tasas, mismo selector en cascada Tipo → Recurso, misma fórmula de
 cálculo de horas y los mismos totales por sección, por curso y por proyecto.
 
-Aplicación 100% cliente (sin backend): todo el cálculo ocurre en el navegador y el estado
-se guarda solo en `localStorage` del propio navegador. No se envía ningún dato a un
-servidor.
+El cálculo ocurre siempre en el navegador (Cubicación/Gestión/Resumen quedan en
+`localStorage`, nunca se envían a ningún servidor). El **acceso a la app y el catálogo de
+tasas** sí dependen de un backend (Supabase): hay una clave de equipo verificada del lado
+del servidor y el catálogo se sincroniza en vivo para todos — ver
+["Backend (Supabase)"](#backend-supabase-login-y-catálogo-compartido) más abajo para
+configurarlo.
 
 ## Cómo funciona el cálculo
 
@@ -56,23 +59,88 @@ cada push a `main`. Pasos para activarlo la primera vez:
    esa línea antes de hacer push.
 3. Hacer push a `main` — el Action queda visible en la pestaña "Actions" del repo.
 
-## Descargar / cargar el catálogo en Excel
+## Backend (Supabase): login y catálogo compartido
 
-En la pestaña "Catálogo" hay dos botones:
+La app está detrás de una clave de acceso **verificada del lado del servidor** (Supabase
+Auth) y el catálogo de tasas vive en una tabla Postgres compartida — cualquier cambio lo
+ven todos en vivo (Realtime), en vez de que cada quien tenga su propia copia en
+`localStorage`.
 
-- **⬇ Descargar catálogo (Excel)** — exporta un `.xlsx` (hoja `Catalogo`) con las columnas
-  Estado, Tipo, Nombre visible, Extensión, Unidad, DI/DG/SOP, ID técnico, Fuente,
-  Observaciones.
-- **⬆ Cargar catálogo actualizado (Excel)** — lee un `.xlsx` con esas mismas columnas y
-  **reemplaza el catálogo activo en ese navegador** (persiste en `localStorage`, no hace
-  falta recargar código). Filas sin `Tipo` o `Nombre visible` se descartan; filas con el
-  mismo `ID tecnico` se fusionan (gana la última del archivo); si `ID tecnico` viene vacío
-  se genera uno nuevo automáticamente. Aparece un botón **Restaurar catálogo original**
-  para volver al catálogo incorporado en el código en cualquier momento.
-- Este reemplazo es **local al navegador** de quien lo carga — no cambia el repositorio.
-  Para que el cambio quede permanente para todos, alguien debe tomar el `.xlsx` corregido
-  y trasladar esas filas a `CATALOGO_BASE` en `src/data/catalogo.ts` (a mano, o pidiéndole
-  a Claude que lo haga a partir del archivo).
+### Por qué esto SÍ es seguridad real (a diferencia de una clave solo en el navegador)
+
+Un password comparado en JavaScript en el navegador es inútil como control de acceso:
+cualquiera puede leer el código fuente publicado y ver contra qué se compara. Con
+Supabase, la clave se verifica en el servidor de Supabase (`auth.signInWithPassword`) y
+las políticas de **Row Level Security (RLS)** en la base de datos son las que deciden
+quién puede leer/escribir el catálogo — no hay forma de leer o modificar el catálogo sin
+haber iniciado sesión, sin importar qué tan bien alguien inspeccione el JS del sitio.
+
+### Configuración (una sola vez)
+
+1. Crear un proyecto gratis en [supabase.com](https://supabase.com) (login con GitHub o
+   email).
+2. En el proyecto → **SQL Editor** → pegar y correr **todo** el contenido de
+   [`supabase/migracion_inicial.sql`](supabase/migracion_inicial.sql) (crea la tabla
+   `catalogo_recursos`, las políticas RLS, y siembra los 47 recursos vigentes).
+3. En **Authentication → Users → Add user**, crear la cuenta compartida del equipo:
+   - Email: `equipo@calculadora.welearn.cl` (debe coincidir con `EQUIPO_EMAIL` en
+     `src/AccessGate.tsx`; si se usa otro email, actualizar esa constante).
+   - Password: la clave que se va a compartir con el equipo.
+   - Activar **"Auto Confirm User"** al crearla (si no, Supabase espera un correo de
+     verificación que nunca va a llegar, porque esta cuenta no es un buzón real).
+4. En **Project Settings → API**, copiar **Project URL** y **anon public key**.
+5. Copiar `.env.example` a `.env` y completar esos dos valores. **Este `.env` sí se
+   commitea** (no está en `.gitignore`): la anon key está diseñada por Supabase para ser
+   pública, la seguridad la da RLS, no ocultar esta key. La única key que NUNCA debe
+   commitearse ni pegarse en el frontend es la **service_role key**.
+6. `npm run dev` (o hacer push a `main` para que el build de GitHub Actions la incluya).
+
+Sin `.env` configurado, la app muestra una pantalla de "Falta configurar Supabase" en vez
+de dejar pasar a cualquiera — nunca hace fallback silencioso a "sin login".
+
+### Cómo se usa desde la app
+
+- **Login**: pantalla de acceso pide solo la clave (el email de equipo va fijo en el
+  código, no es un dato secreto). La sesión persiste en el dispositivo hasta "Cerrar
+  sesión" (footer de la app).
+- **Catálogo compartido**: en la pestaña "Catálogo", **⬆ Cargar catálogo actualizado
+  (Excel)** ahora sube (upsert) las filas a Supabase — el cambio lo ven todos al instante,
+  no solo quien lo sube. **Restaurar catálogo original** reemplaza TODO el catálogo
+  compartido por `CATALOGO_BASE` (con confirmación, porque afecta a todo el equipo).
+  **⬇ Descargar catálogo (Excel)** sigue siendo una exportación normal, sin tocar nada.
+- Si Supabase no responde (caído, sin internet), la app muestra un aviso y cae de vuelta a
+  `CATALOGO_BASE` como referencia de solo lectura — nunca se rompe silenciosamente.
+
+### Posibles mejoras futuras (quedan listas para construir sobre esto, no implementadas)
+
+- Cuentas individuales en vez de una clave compartida (Supabase Auth ya lo soporta; solo
+  falta una pantalla de gestión de usuarios y decidir roles/permisos por persona).
+- Guardar los proyectos de Cubicación en Supabase en vez de `localStorage` (accesibles
+  desde cualquier dispositivo, no solo el navegador donde se creó el proyecto).
+- Roles (ej. "admin" puede editar catálogo, "viewer" solo calcula) usando una tabla de
+  roles + políticas RLS adicionales en vez de que cualquier sesión pueda editar todo.
+
+## Actualizar el catálogo de tasas (directo en el código)
+
+`CATALOGO_BASE` (`src/data/catalogo.ts`, un array plano, sin build step de Excel) es el
+catálogo de referencia incorporado en el código — se usa para sembrar Supabase
+inicialmente (`supabase/migracion_inicial.sql`) y como respaldo de solo lectura si
+Supabase no está configurado o no responde. El catálogo que la app usa día a día en
+producción es el de Supabase, no este archivo:
+
+1. Para un cambio puntual: usar el flujo Excel (descargar → corregir → cargar) desde la
+   pestaña Catálogo, que ya sincroniza con todo el equipo.
+2. Para cambiar el catálogo de referencia/semilla (`CATALOGO_BASE`): editar
+   `src/data/catalogo.ts` y opcionalmente correr **Restaurar catálogo original** para que
+   el cambio también se refleje en el catálogo compartido.
+3. Las filas de plantilla por defecto de Cubicación/Gestión están en
+   `src/data/plantilla.ts`.
+
+El catálogo realmente usado por la app en cada momento vive en `CatalogContext`
+(`src/CatalogContext.tsx`, sincronizado con Supabase + Realtime) y se accede con el hook
+`useCatalog()` — todos los componentes que necesitan tasas (`CascadaSelector`,
+`TablaCubicacion`, `PanelCatalogo`, `calc.ts`) lo reciben como parámetro/prop en vez de
+importar `CATALOGO_BASE` directamente.
 
 La librería usada para leer/escribir `.xlsx` es `xlsx` (SheetJS), instalada **desde el CDN
 oficial de SheetJS** (`https://cdn.sheetjs.com/...`) en vez del registro de npm — la
@@ -81,23 +149,6 @@ versión publicada en npm (0.18.5) tiene vulnerabilidades conocidas sin parche
 esta dependencia, mantener ese mismo canal de instalación, no `npm install xlsx` a secas.
 Se carga con `import()` dinámico (no en el bundle principal) porque pesa ~500 KB — solo se
 descarga cuando alguien abre la pestaña Catálogo y usa descargar/cargar.
-
-## Actualizar el catálogo de tasas (directo en el código)
-
-El catálogo base vive en `CATALOGO_BASE` (`src/data/catalogo.ts`, un array plano, sin
-build step de Excel):
-
-1. Editar/agregar la fila correspondiente en `CATALOGO_BASE`.
-2. Si el recurso pasa a `estado: 'Validado'`, aparece automáticamente en la cascada
-   Tipo → Recurso (no requiere tocar ningún otro archivo).
-3. Las filas de plantilla por defecto de Cubicación/Gestión están en
-   `src/data/plantilla.ts`.
-
-El catálogo realmente usado por la app en cada momento (`CATALOGO_BASE` o uno cargado
-desde Excel) vive en `CatalogContext` (`src/CatalogContext.tsx`) y se accede con el hook
-`useCatalog()` — todos los componentes que necesitan tasas (`CascadaSelector`,
-`TablaCubicacion`, `PanelCatalogo`, `calc.ts`) lo reciben como parámetro/prop en vez de
-importar `CATALOGO_BASE` directamente.
 
 ## Notas de interfaz
 
@@ -119,11 +170,17 @@ src/
   types.ts               tipos compartidos (RecursoCatalogo, ProduccionRow, GestionRow…)
   calc.ts                 fórmulas de cálculo (factor, HH por fila, resumen/totales)
   format.ts               formato numérico es-CL
-  CatalogContext.tsx       catálogo activo (base o importado), persistido en localStorage
+  supabaseClient.ts        cliente de Supabase + supabaseConfigurado (fallback seguro)
+  AccessGate.tsx           login (Supabase Auth) — bloquea toda la app hasta iniciar sesión
+  AccessGate.css           estilos de la pantalla de acceso
+  CatalogContext.tsx       catálogo compartido (Supabase + Realtime), con CATALOGO_BASE
+                          como respaldo de solo lectura si Supabase no responde
   excelCatalogo.ts         export/import del catálogo en .xlsx (carga diferida de xlsx)
-  data/catalogo.ts         CATALOGO_BASE: catálogo incorporado en el código
+  data/catalogo.ts         CATALOGO_BASE: catálogo de referencia/semilla incorporado en el código
   data/plantilla.ts        filas por defecto de Gestión y Cubicación
   components/             CascadaSelector, TablaGestion, TablaCubicacion, PanelCatalogo,
                           PanelResumen, PanelParametros
-  App.tsx                  estado global + persistencia en localStorage
+  App.tsx                  estado de Cubicación/Gestión + persistencia en localStorage
+supabase/
+  migracion_inicial.sql    esquema + políticas RLS + datos semilla para Supabase
 ```
