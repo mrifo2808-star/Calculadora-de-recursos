@@ -1,4 +1,4 @@
-import { FRECUENCIAS, type ProduccionRow } from '../types';
+import { FRECUENCIAS, type ProduccionRow, type RecursoCatalogo } from '../types';
 import { calcularProduccion } from '../calc';
 import { fmt } from '../format';
 import { CascadaSelector } from './CascadaSelector';
@@ -7,6 +7,7 @@ import { SECCIONES } from '../data/plantilla';
 interface Props {
   rows: ProduccionRow[];
   nSemanas: number;
+  catalogo: RecursoCatalogo[];
   onChange: (rows: ProduccionRow[]) => void;
   onAdd: (seccion: string) => void;
 }
@@ -17,8 +18,8 @@ const estadoClase: Record<string, string> = {
   VACIA: 'pill pill--vacia',
 };
 
-export function TablaCubicacion({ rows, nSemanas, onChange, onAdd }: Props) {
-  const calculadas = calcularProduccion(rows, nSemanas);
+export function TablaCubicacion({ rows, nSemanas, catalogo, onChange, onAdd }: Props) {
+  const calculadas = calcularProduccion(rows, nSemanas, catalogo);
 
   const update = (rowId: string, patch: Partial<ProduccionRow>) =>
     onChange(rows.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r)));
@@ -76,7 +77,11 @@ export function TablaCubicacion({ rows, nSemanas, onChange, onAdd }: Props) {
                         />
                       </td>
                       <td>
-                        <CascadaSelector recursoId={r.recursoId} onChange={(id) => update(r.rowId, { recursoId: id })} />
+                        <CascadaSelector
+                          catalogo={catalogo}
+                          recursoId={r.recursoId}
+                          onChange={(id) => update(r.rowId, { recursoId: id })}
+                        />
                       </td>
                       <td>
                         <input

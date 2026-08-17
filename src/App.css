@@ -77,6 +77,28 @@
   margin: 6px 0 16px;
 }
 
+.panel__hint--aviso {
+  background: #fdf6e3;
+  color: #8a6d1a;
+  border: 1px solid #f0e0a8;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.panel__hint--ok {
+  background: #e2f6ec;
+  color: #1a7f4b;
+  border: 1px solid #bfe9d3;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.panel__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .panel h2 {
   font-size: 18px;
   font-weight: 700;

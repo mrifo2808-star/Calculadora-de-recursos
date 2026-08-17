@@ -1,7 +1,6 @@
-import { useMemo, useState } from 'react';
-import { CATALOGO } from '../data/catalogo';
+import { useMemo, useRef, useState } from 'react';
 import { fmt } from '../format';
-import { catalogoACSV, descargarCSV } from '../export';
+import { useCatalog } from '../CatalogContext';
 
 const estadoClase: Record<string, string> = {
   Validado: 'pill pill--ok',
@@ -10,38 +9,94 @@ const estadoClase: Record<string, string> = {
 };
 
 export function PanelCatalogo() {
+  const { catalogo, esPersonalizado, reemplazarCatalogo, restaurarCatalogoOriginal } = useCatalog();
   const [filtro, setFiltro] = useState('');
   const [soloValidados, setSoloValidados] = useState(true);
+  const [mensajeImport, setMensajeImport] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+  const inputArchivoRef = useRef<HTMLInputElement>(null);
 
   const filas = useMemo(() => {
     const q = filtro.trim().toLowerCase();
-    return CATALOGO.filter((r) => {
+    return catalogo.filter((r) => {
       if (soloValidados && r.estado !== 'Validado') return false;
       if (!q) return true;
       return `${r.tipo} ${r.nombreVisible} ${r.extension}`.toLowerCase().includes(q);
     });
-  }, [filtro, soloValidados]);
+  }, [catalogo, filtro, soloValidados]);
 
-  const validados = CATALOGO.filter((r) => r.estado === 'Validado').length;
+  const validados = catalogo.filter((r) => r.estado === 'Validado').length;
 
-  const descargar = () => {
-    const fecha = new Date().toISOString().slice(0, 10);
-    descargarCSV(`catalogo-welearn-${fecha}.csv`, catalogoACSV(CATALOGO));
+  const descargar = async () => {
+    const { descargarCatalogoExcel } = await import('../excelCatalogo');
+    descargarCatalogoExcel(catalogo);
+  };
+
+  const elegirArchivo = () => inputArchivoRef.current?.click();
+
+  const cargarArchivo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0];
+    e.target.value = ''; // permite volver a elegir el mismo archivo si se corrige y reintenta
+    if (!archivo) return;
+    try {
+      const { catalogoDesdeArchivoExcel } = await import('../excelCatalogo');
+      const resultado = await catalogoDesdeArchivoExcel(archivo);
+      if (resultado.filasValidas === 0) {
+        setMensajeImport({ tipo: 'error', texto: 'El archivo no tiene filas válidas (revisa columnas Tipo/Nombre visible).' });
+        return;
+      }
+      reemplazarCatalogo(resultado.catalogo);
+      const partes = [`${resultado.filasValidas} recursos cargados de ${resultado.filasLeidas} filas leídas.`];
+      if (resultado.duplicadosFusionados > 0) partes.push(`${resultado.duplicadosFusionados} filas con ID repetido se fusionaron (quedó la última).`);
+      if (resultado.erroresFila.length > 0) partes.push(`${resultado.erroresFila.length} advertencias: ${resultado.erroresFila.slice(0, 3).join(' ')}`);
+      setMensajeImport({ tipo: resultado.erroresFila.length > 0 ? 'error' : 'ok', texto: partes.join(' ') });
+    } catch {
+      setMensajeImport({ tipo: 'error', texto: 'No se pudo leer el archivo. Verifica que sea un .xlsx exportado desde aquí o con las mismas columnas.' });
+    }
   };
 
   return (
     <section className="panel">
       <div className="panel__header">
         <h2>Catálogo de tasas DI / DG / SOP</h2>
-        <button type="button" className="btn-secundario" onClick={descargar}>
-          ⬇ Descargar catálogo (CSV)
-        </button>
+        <div className="panel__acciones">
+          {esPersonalizado && (
+            <button type="button" className="btn-secundario" onClick={restaurarCatalogoOriginal}>
+              Restaurar catálogo original
+            </button>
+          )}
+          <button type="button" className="btn-secundario" onClick={elegirArchivo}>
+            ⬆ Cargar catálogo actualizado (Excel)
+          </button>
+          <button type="button" className="btn-secundario" onClick={descargar}>
+            ⬇ Descargar catálogo (Excel)
+          </button>
+          <input
+            ref={inputArchivoRef}
+            type="file"
+            accept=".xlsx"
+            onChange={cargarArchivo}
+            style={{ display: 'none' }}
+          />
+        </div>
       </div>
       <p className="panel__hint">
         Fuente de verdad de tarifas (horas). Solo <strong>Validado</strong> es seleccionable en Cubicación (
-        {validados} de {CATALOGO.length} recursos). Pendiente/Histórico quedan como referencia. Descarga el CSV para
-        revisar o corregir tarifas fuera de la app (Excel/Sheets) — ver README para cómo reincorporar los cambios.
+        {validados} de {catalogo.length} recursos). Pendiente/Histórico quedan como referencia. Descarga el Excel,
+        corrígelo (mismas columnas) y vuelve a cargarlo aquí — reemplaza el catálogo activo en este navegador sin
+        tocar el código.
       </p>
+      {esPersonalizado && (
+        <p className="panel__hint panel__hint--aviso">
+          Este catálogo fue reemplazado por un archivo cargado manualmente (se guarda solo en este navegador). El
+          catálogo publicado en el repositorio no cambia hasta que alguien actualice{' '}
+          <code>src/data/catalogo.ts</code> con estos mismos datos.
+        </p>
+      )}
+      {mensajeImport && (
+        <p className={mensajeImport.tipo === 'ok' ? 'panel__hint panel__hint--ok' : 'panel__hint panel__hint--aviso'}>
+          {mensajeImport.texto}
+        </p>
+      )}
       <div className="catalogo-filtros">
         <input
           type="search"

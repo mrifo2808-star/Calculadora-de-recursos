@@ -8,6 +8,7 @@ import { PanelResumen } from './components/PanelResumen';
 import { PARAMETROS_DEFAULT, gestionDefault, nuevaFilaGestion, nuevaFilaProduccion, produccionDefault, SECCIONES } from './data/plantilla';
 import { calcularGestion, calcularProduccion, calcularResumen } from './calc';
 import type { GestionRow, ParametrosCurso, ProduccionRow } from './types';
+import { useCatalog } from './CatalogContext';
 
 const STORAGE_KEY = 'welearn-calculadora-v1';
 
@@ -30,6 +31,7 @@ function estadoInicial(): Estado {
 type Vista = 'cubicacion' | 'catalogo' | 'resumen';
 
 function App() {
+  const { catalogo } = useCatalog();
   const [estado, setEstado] = useState<Estado>(estadoInicial);
   const [vista, setVista] = useState<Vista>('cubicacion');
 
@@ -38,10 +40,10 @@ function App() {
   }, [estado]);
 
   const resumen = useMemo(() => {
-    const produccionCalc = calcularProduccion(estado.produccion, estado.parametros.nSemanas);
+    const produccionCalc = calcularProduccion(estado.produccion, estado.parametros.nSemanas, catalogo);
     const gestionCalc = calcularGestion(estado.gestion, estado.parametros.nSemanas);
     return calcularResumen(produccionCalc, gestionCalc, estado.parametros.nCursos, SECCIONES);
-  }, [estado]);
+  }, [estado, catalogo]);
 
   const resetPlantilla = () => {
     if (!confirm('Esto reemplaza todos los datos actuales por la plantilla original. ¿Continuar?')) return;
@@ -90,6 +92,7 @@ function App() {
         <TablaCubicacion
           rows={estado.produccion}
           nSemanas={estado.parametros.nSemanas}
+          catalogo={catalogo}
           onChange={(produccion) => setEstado((e) => ({ ...e, produccion }))}
           onAdd={(seccion) => setEstado((e) => ({ ...e, produccion: [...e.produccion, nuevaFilaProduccion(seccion)] }))}
         />

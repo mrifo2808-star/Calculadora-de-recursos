@@ -1,5 +1,5 @@
 import { recursoPorId } from './data/catalogo';
-import type { Frecuencia, GestionRow, ProduccionRow } from './types';
+import type { Frecuencia, GestionRow, ProduccionRow, RecursoCatalogo } from './types';
 
 export const factorDe = (frecuencia: Frecuencia, nSemanas: number): number =>
   frecuencia === 'Por semana' ? nSemanas : 1;
@@ -16,9 +16,13 @@ export interface ProduccionCalculada extends ProduccionRow {
   etiquetaRecurso: string;
 }
 
-export function calcularProduccion(rows: ProduccionRow[], nSemanas: number): ProduccionCalculada[] {
+export function calcularProduccion(
+  rows: ProduccionRow[],
+  nSemanas: number,
+  catalogo: RecursoCatalogo[],
+): ProduccionCalculada[] {
   return rows.map((r) => {
-    const recurso = recursoPorId(r.recursoId);
+    const recurso = recursoPorId(catalogo, r.recursoId);
     const factor = factorDe(r.frecuencia, nSemanas);
     const cantidad = Number.isFinite(r.cantidad) ? r.cantidad : 0;
 

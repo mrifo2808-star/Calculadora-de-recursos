@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { etiquetaRecurso, recursoPorId, recursosPorTipo, tiposDisponibles } from '../data/catalogo';
+import type { RecursoCatalogo } from '../types';
 
 interface Props {
+  catalogo: RecursoCatalogo[];
   recursoId: string | null;
   onChange: (recursoId: string | null) => void;
 }
 
-export function CascadaSelector({ recursoId, onChange }: Props) {
-  const recursoActual = recursoPorId(recursoId);
+export function CascadaSelector({ catalogo, recursoId, onChange }: Props) {
+  const recursoActual = recursoPorId(catalogo, recursoId);
   // El Tipo elegido se guarda aparte del recurso: cuando un Tipo tiene varios
   // Recursos validos, recursoId queda en null hasta que el usuario elige uno,
   // pero el select de Tipo no debe "olvidar" lo que ya se eligio.
@@ -18,7 +20,7 @@ export function CascadaSelector({ recursoId, onChange }: Props) {
   }, [recursoId, recursoActual]);
 
   const tipoActual = recursoActual?.tipo ?? tipoPendiente;
-  const opcionesRecurso = tipoActual ? recursosPorTipo(tipoActual) : [];
+  const opcionesRecurso = tipoActual ? recursosPorTipo(catalogo, tipoActual) : [];
 
   const handleTipo = (tipo: string) => {
     setTipoPendiente(tipo);
@@ -26,7 +28,7 @@ export function CascadaSelector({ recursoId, onChange }: Props) {
       onChange(null);
       return;
     }
-    const opciones = recursosPorTipo(tipo);
+    const opciones = recursosPorTipo(catalogo, tipo);
     onChange(opciones.length === 1 ? opciones[0].id : null);
   };
 
@@ -39,7 +41,7 @@ export function CascadaSelector({ recursoId, onChange }: Props) {
         className="cascada__tipo"
       >
         <option value="">Tipo…</option>
-        {tiposDisponibles().map((t) => (
+        {tiposDisponibles(catalogo).map((t) => (
           <option key={t} value={t}>
             {t}
           </option>

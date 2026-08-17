@@ -56,31 +56,61 @@ cada push a `main`. Pasos para activarlo la primera vez:
    esa línea antes de hacer push.
 3. Hacer push a `main` — el Action queda visible en la pestaña "Actions" del repo.
 
-## Actualizar el catálogo de tasas
+## Descargar / cargar el catálogo en Excel
 
-El catálogo vive en `src/data/catalogo.ts` (un array plano, sin build step de Excel). En
-la pestaña "Catálogo" de la app hay un botón **Descargar catálogo (CSV)** que exporta la
-tabla completa (Estado, Tipo, Nombre visible, Extensión, Unidad, DI/DG/SOP, Fuente,
-Observaciones) para revisarla o corregirla fuera de la app (Excel/Sheets). Para incorporar
-un cambio de tarifas después de corregir el CSV:
+En la pestaña "Catálogo" hay dos botones:
 
-1. Editar/agregar la fila correspondiente en `CATALOGO` (`src/data/catalogo.ts`).
+- **⬇ Descargar catálogo (Excel)** — exporta un `.xlsx` (hoja `Catalogo`) con las columnas
+  Estado, Tipo, Nombre visible, Extensión, Unidad, DI/DG/SOP, ID técnico, Fuente,
+  Observaciones.
+- **⬆ Cargar catálogo actualizado (Excel)** — lee un `.xlsx` con esas mismas columnas y
+  **reemplaza el catálogo activo en ese navegador** (persiste en `localStorage`, no hace
+  falta recargar código). Filas sin `Tipo` o `Nombre visible` se descartan; filas con el
+  mismo `ID tecnico` se fusionan (gana la última del archivo); si `ID tecnico` viene vacío
+  se genera uno nuevo automáticamente. Aparece un botón **Restaurar catálogo original**
+  para volver al catálogo incorporado en el código en cualquier momento.
+- Este reemplazo es **local al navegador** de quien lo carga — no cambia el repositorio.
+  Para que el cambio quede permanente para todos, alguien debe tomar el `.xlsx` corregido
+  y trasladar esas filas a `CATALOGO_BASE` en `src/data/catalogo.ts` (a mano, o pidiéndole
+  a Claude que lo haga a partir del archivo).
+
+La librería usada para leer/escribir `.xlsx` es `xlsx` (SheetJS), instalada **desde el CDN
+oficial de SheetJS** (`https://cdn.sheetjs.com/...`) en vez del registro de npm — la
+versión publicada en npm (0.18.5) tiene vulnerabilidades conocidas sin parche
+(prototype pollution + ReDoS) que SheetJS solo corrige en su propio CDN. Si se actualiza
+esta dependencia, mantener ese mismo canal de instalación, no `npm install xlsx` a secas.
+Se carga con `import()` dinámico (no en el bundle principal) porque pesa ~500 KB — solo se
+descarga cuando alguien abre la pestaña Catálogo y usa descargar/cargar.
+
+## Actualizar el catálogo de tasas (directo en el código)
+
+El catálogo base vive en `CATALOGO_BASE` (`src/data/catalogo.ts`, un array plano, sin
+build step de Excel):
+
+1. Editar/agregar la fila correspondiente en `CATALOGO_BASE`.
 2. Si el recurso pasa a `estado: 'Validado'`, aparece automáticamente en la cascada
    Tipo → Recurso (no requiere tocar ningún otro archivo).
 3. Las filas de plantilla por defecto de Cubicación/Gestión están en
    `src/data/plantilla.ts`.
 
+El catálogo realmente usado por la app en cada momento (`CATALOGO_BASE` o uno cargado
+desde Excel) vive en `CatalogContext` (`src/CatalogContext.tsx`) y se accede con el hook
+`useCatalog()` — todos los componentes que necesitan tasas (`CascadaSelector`,
+`TablaCubicacion`, `PanelCatalogo`, `calc.ts`) lo reciben como parámetro/prop en vez de
+importar `CATALOGO_BASE` directamente.
+
 ## Estructura
 
 ```
 src/
-  types.ts              tipos compartidos (RecursoCatalogo, ProduccionRow, GestionRow…)
-  calc.ts                fórmulas de cálculo (factor, HH por fila, resumen/totales)
-  format.ts              formato numérico es-CL
-  data/catalogo.ts        catálogo de recursos (tasas DI/DG/SOP)
-  export.ts               generación de CSV para descargar el catálogo
-  data/plantilla.ts       filas por defecto de Gestión y Cubicación
-  components/            CascadaSelector, TablaGestion, TablaCubicacion, PanelCatalogo,
+  types.ts               tipos compartidos (RecursoCatalogo, ProduccionRow, GestionRow…)
+  calc.ts                 fórmulas de cálculo (factor, HH por fila, resumen/totales)
+  format.ts               formato numérico es-CL
+  CatalogContext.tsx       catálogo activo (base o importado), persistido en localStorage
+  excelCatalogo.ts         export/import del catálogo en .xlsx (carga diferida de xlsx)
+  data/catalogo.ts         CATALOGO_BASE: catálogo incorporado en el código
+  data/plantilla.ts        filas por defecto de Gestión y Cubicación
+  components/             CascadaSelector, TablaGestion, TablaCubicacion, PanelCatalogo,
                           PanelResumen, PanelParametros
-  App.tsx                 estado global + persistencia en localStorage
+  App.tsx                  estado global + persistencia en localStorage
 ```
