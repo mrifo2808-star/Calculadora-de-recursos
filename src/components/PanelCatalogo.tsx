@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { fmt } from '../format';
 import { useCatalog } from '../CatalogContext';
+import { useConfirm } from '../ConfirmModal';
 
 const estadoClase: Record<string, string> = {
   Validado: 'pill pill--ok',
@@ -10,6 +11,7 @@ const estadoClase: Record<string, string> = {
 
 export function PanelCatalogo() {
   const { catalogo, cargando, error, fuenteRemota, actualizarCatalogo, restaurarCatalogoOriginal } = useCatalog();
+  const confirmar = useConfirm();
   const [filtro, setFiltro] = useState('');
   const [soloValidados, setSoloValidados] = useState(true);
   const [mensajeImport, setMensajeImport] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
@@ -42,7 +44,11 @@ export function PanelCatalogo() {
   const elegirArchivo = () => inputArchivoRef.current?.click();
 
   const restaurarOriginal = async () => {
-    if (!confirm('Esto reemplaza el catálogo COMPARTIDO por el de referencia del código, para TODO el equipo. ¿Continuar?')) return;
+    const ok = await confirmar(
+      'Esto reemplaza el catálogo COMPARTIDO por el de referencia del código, para TODO el equipo. ¿Continuar?',
+      { titulo: 'Restaurar catálogo original', textoConfirmar: 'Restaurar' },
+    );
+    if (!ok) return;
     setRestaurando(true);
     const resultado = await restaurarCatalogoOriginal();
     setRestaurando(false);
@@ -65,7 +71,11 @@ export function PanelCatalogo() {
         setMensajeImport({ tipo: 'error', texto: 'El archivo no tiene filas válidas (revisa columnas Tipo/Nombre visible).' });
         return;
       }
-      if (!confirm(`Esto actualiza ${resultado.filasValidas} recursos en el catálogo COMPARTIDO, para TODO el equipo. ¿Continuar?`)) {
+      const ok = await confirmar(
+        `Esto actualiza ${resultado.filasValidas} recursos en el catálogo COMPARTIDO, para TODO el equipo. ¿Continuar?`,
+        { titulo: 'Cargar catálogo actualizado', textoConfirmar: 'Sincronizar' },
+      );
+      if (!ok) {
         return;
       }
       const subida = await actualizarCatalogo(resultado.catalogo);

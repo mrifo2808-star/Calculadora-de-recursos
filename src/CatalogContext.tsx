@@ -113,16 +113,29 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
 
   const restaurarCatalogoOriginal = async (): Promise<ResultadoOperacion> => {
     if (!supabaseConfigurado) return { ok: false, error: 'Supabase no está configurado en este build.' };
+    // Respaldo en memoria del catalogo compartido tal como esta ANTES de borrar, para
+    // poder recuperarlo si el insert del catalogo base falla y la tabla queda vacia.
+    const backup = catalogo;
     const { error: errorDelete } = await supabase.from('catalogo_recursos').delete().neq('id', '');
     if (errorDelete) return { ok: false, error: errorDelete.message };
     const { error: errorInsert } = await supabase.from('catalogo_recursos').insert(CATALOGO_BASE.map(recursoAFilaDB));
-    if (errorInsert) return { ok: false, error: errorInsert.message };
+    if (errorInsert) {
+      if (backup.length === 0) return { ok: false, error: errorInsert.message };
+      const { error: errorRestore } = await supabase.from('catalogo_recursos').insert(backup.map(recursoAFilaDB));
+      if (errorRestore) {
+        return {
+          ok: false,
+          error: `No se pudo insertar el catálogo base (${errorInsert.message}) ni recuperar el catálogo anterior (${errorRestore.message}). El catálogo compartido quedó vacío — contacta a alguien con acceso a Supabase.`,
+        };
+      }
+      return { ok: false, error: `No se pudo restaurar el catálogo base (${errorInsert.message}). Se recuperó el catálogo anterior sin cambios.` };
+    }
     return { ok: true };
   };
 
   const value = useMemo<CatalogContextValue>(
     () => ({ catalogo, cargando, error, fuenteRemota, actualizarCatalogo, restaurarCatalogoOriginal }),
-    [catalogo, cargando, error, fuenteRemota],
+    [catalogo, cargando, error, fuenteRemota, actualizarCatalogo, restaurarCatalogoOriginal],
   );
 
   return <CatalogContext.Provider value={value}>{children}</CatalogContext.Provider>;

@@ -24,7 +24,7 @@ export function calcularProduccion(
   return rows.map((r) => {
     const recurso = recursoPorId(catalogo, r.recursoId);
     const factor = factorDe(r.frecuencia, nSemanas);
-    const cantidad = Number.isFinite(r.cantidad) ? r.cantidad : 0;
+    const cantidad = Number.isFinite(r.cantidad) ? Math.max(0, r.cantidad) : 0;
 
     if (!recurso) {
       const estado: EstadoFila = r.tarea.trim() ? 'PENDIENTE DE CATALOGAR' : 'VACIA';

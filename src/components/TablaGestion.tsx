@@ -50,7 +50,7 @@ export function TablaGestion({ rows, nSemanas, onChange, onAdd }: Props) {
                     type="number"
                     min={0}
                     value={r.cantidad}
-                    onChange={(e) => update(r.rowId, { cantidad: Number(e.target.value) })}
+                    onChange={(e) => update(r.rowId, { cantidad: Math.max(0, Number(e.target.value)) })}
                     className="input-num"
                   />
                 </td>

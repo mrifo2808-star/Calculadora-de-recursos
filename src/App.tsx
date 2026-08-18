@@ -6,11 +6,12 @@ import { TablaCubicacion } from './components/TablaCubicacion';
 import { PanelCatalogo } from './components/PanelCatalogo';
 import { PanelResumen } from './components/PanelResumen';
 import { PanelInstrucciones } from './components/PanelInstrucciones';
-import { PARAMETROS_DEFAULT, gestionDefault, nuevaFilaGestion, nuevaFilaProduccion, produccionDefault, SECCIONES } from './data/plantilla';
+import { PARAMETROS_DEFAULT, gestionDefault, nuevaFilaGestion, nuevaFilaProduccion, produccionDefault, resetContadorId, SECCIONES } from './data/plantilla';
 import { calcularGestion, calcularProduccion, calcularResumen } from './calc';
 import type { GestionRow, ParametrosCurso, ProduccionRow } from './types';
 import { useCatalog } from './CatalogContext';
 import { useAccess } from './AccessGate';
+import { useConfirm } from './ConfirmModal';
 
 const STORAGE_KEY = 'welearn-calculadora-v1';
 
@@ -35,8 +36,10 @@ type Vista = 'cubicacion' | 'catalogo' | 'resumen' | 'instrucciones';
 function App() {
   const { catalogo } = useCatalog();
   const { cerrarSesion } = useAccess();
+  const confirmar = useConfirm();
   const [estado, setEstado] = useState<Estado>(estadoInicial);
   const [vista, setVista] = useState<Vista>('cubicacion');
+  const [exportando, setExportando] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -56,15 +59,31 @@ function App() {
     return () => observer.disconnect();
   }, []);
 
-  const resumen = useMemo(() => {
+  const { produccionCalc, gestionCalc, resumen } = useMemo(() => {
     const produccionCalc = calcularProduccion(estado.produccion, estado.parametros.nSemanas, catalogo);
     const gestionCalc = calcularGestion(estado.gestion, estado.parametros.nSemanas);
-    return calcularResumen(produccionCalc, gestionCalc, estado.parametros.nCursos, SECCIONES);
+    const resumen = calcularResumen(produccionCalc, gestionCalc, estado.parametros.nCursos, SECCIONES);
+    return { produccionCalc, gestionCalc, resumen };
   }, [estado, catalogo]);
 
-  const resetPlantilla = () => {
-    if (!confirm('Esto reemplaza todos los datos actuales por la plantilla original. ¿Continuar?')) return;
+  const resetPlantilla = async () => {
+    const ok = await confirmar('Esto reemplaza todos los datos actuales por la plantilla original. ¿Continuar?', {
+      titulo: 'Restaurar plantilla',
+      textoConfirmar: 'Restaurar',
+    });
+    if (!ok) return;
+    resetContadorId();
     setEstado({ parametros: PARAMETROS_DEFAULT, gestion: gestionDefault(), produccion: produccionDefault() });
+  };
+
+  const exportarExcel = async () => {
+    setExportando(true);
+    try {
+      const { descargarCubicacionExcel } = await import('./exportCubicacion');
+      descargarCubicacionExcel({ parametros: estado.parametros, gestion: gestionCalc, produccion: produccionCalc, resumen });
+    } finally {
+      setExportando(false);
+    }
   };
 
   return (
@@ -84,6 +103,8 @@ function App() {
         parametros={estado.parametros}
         onChange={(parametros) => setEstado((e) => ({ ...e, parametros }))}
         onReset={resetPlantilla}
+        onExport={exportarExcel}
+        exportando={exportando}
       />
 
       <TablaGestion
@@ -108,7 +129,10 @@ function App() {
         </button>
       </nav>
 
-      {vista === 'cubicacion' && (
+      {/* Las 4 vistas quedan siempre montadas y se ocultan con display:none en vez de
+          desmontarse: cambiar de tab no debe perder el scroll ni el estado interno
+          (filtros del catalogo, etc.) de la vista que se deja de mostrar. */}
+      <div style={{ display: vista === 'cubicacion' ? 'block' : 'none' }}>
         <TablaCubicacion
           rows={estado.produccion}
           nSemanas={estado.parametros.nSemanas}
@@ -116,14 +140,20 @@ function App() {
           onChange={(produccion) => setEstado((e) => ({ ...e, produccion }))}
           onAdd={(seccion) => setEstado((e) => ({ ...e, produccion: [...e.produccion, nuevaFilaProduccion(seccion)] }))}
         />
-      )}
-      {vista === 'catalogo' && <PanelCatalogo />}
-      {vista === 'resumen' && <PanelResumen resumen={resumen} nCursos={estado.parametros.nCursos} />}
-      {vista === 'instrucciones' && <PanelInstrucciones />}
+      </div>
+      <div style={{ display: vista === 'catalogo' ? 'block' : 'none' }}>
+        <PanelCatalogo />
+      </div>
+      <div style={{ display: vista === 'resumen' ? 'block' : 'none' }}>
+        <PanelResumen resumen={resumen} nCursos={estado.parametros.nCursos} />
+      </div>
+      <div style={{ display: vista === 'instrucciones' ? 'block' : 'none' }}>
+        <PanelInstrucciones />
+      </div>
 
       <footer className="app__footer">
-        Datos guardados solo en este navegador (localStorage) — nada se envía a un servidor. Catálogo de tasas
-        replicado desde WeLearn_Calculadora_Recursos_v1.3_RC7_EDITABLE.xlsx.
+        Catálogo de tasas sincronizado en vivo con el equipo (Supabase). Cubicación, gestión y parámetros del
+        proyecto se guardan solo en este navegador (localStorage) — nada de eso se envía a un servidor.
         <button type="button" className="app__cerrar-sesion" onClick={cerrarSesion}>
           Cerrar sesión
         </button>

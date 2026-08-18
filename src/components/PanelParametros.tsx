@@ -4,9 +4,11 @@ interface Props {
   parametros: ParametrosCurso;
   onChange: (p: ParametrosCurso) => void;
   onReset: () => void;
+  onExport: () => void;
+  exportando: boolean;
 }
 
-export function PanelParametros({ parametros, onChange, onReset }: Props) {
+export function PanelParametros({ parametros, onChange, onReset, onExport, exportando }: Props) {
   const set = <K extends keyof ParametrosCurso>(key: K, value: ParametrosCurso[K]) =>
     onChange({ ...parametros, [key]: value });
 
@@ -14,9 +16,14 @@ export function PanelParametros({ parametros, onChange, onReset }: Props) {
     <section className="panel">
       <div className="panel__header">
         <h2>Parámetros del proyecto</h2>
-        <button type="button" className="btn-secundario" onClick={onReset}>
-          Restaurar plantilla
-        </button>
+        <div className="panel__acciones">
+          <button type="button" className="btn-secundario" onClick={onExport} disabled={exportando}>
+            {exportando ? 'Generando…' : '⬇ Exportar a Excel'}
+          </button>
+          <button type="button" className="btn-secundario" onClick={onReset}>
+            Restaurar plantilla
+          </button>
+        </div>
       </div>
       <div className="grid-parametros">
         <label>
@@ -48,14 +55,6 @@ export function PanelParametros({ parametros, onChange, onReset }: Props) {
         <label>
           Modalidad
           <input type="text" value={parametros.modalidad} onChange={(e) => set('modalidad', e.target.value)} />
-        </label>
-        <label className="checkbox checkbox--param">
-          <input
-            type="checkbox"
-            checked={parametros.incluyeAudiovisual}
-            onChange={(e) => set('incluyeAudiovisual', e.target.checked)}
-          />
-          Incluye audiovisual
         </label>
       </div>
       <p className="panel__hint">

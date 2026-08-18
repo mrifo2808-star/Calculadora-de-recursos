@@ -3,13 +3,19 @@ import type { GestionRow, ParametrosCurso, ProduccionRow } from '../types';
 let seq = 0;
 const nextId = (prefix: string) => `${prefix}-${++seq}`;
 
+/** Reinicia el contador de IDs internos (rowId) a 0. Llamar antes de regenerar la
+ * plantilla (gestionDefault/produccionDefault) al "Restaurar plantilla", para que los
+ * IDs vuelvan a partir de 1 en vez de seguir subiendo desde el uso previo de la sesion. */
+export const resetContadorId = (): void => {
+  seq = 0;
+};
+
 export const PARAMETROS_DEFAULT: ParametrosCurso = {
   proyecto: 'Proyecto Demo',
   cliente: 'Cliente Demo',
   nCursos: 1,
   nSemanas: 4,
   modalidad: 'Full',
-  incluyeAudiovisual: true,
 };
 
 export const gestionDefault = (): GestionRow[] => [

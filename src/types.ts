@@ -44,5 +44,4 @@ export interface ParametrosCurso {
   nCursos: number;
   nSemanas: number;
   modalidad: string;
-  incluyeAudiovisual: boolean;
 }
