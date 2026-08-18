@@ -91,7 +91,7 @@ export function TablaCubicacion({ rows, nSemanas, catalogo, etapasActivas, onTog
                 </thead>
                 <tbody>
                   {filas.map((r) => (
-                    <tr key={r.rowId} className={r.activa === false ? 'fila--desactivada' : undefined}>
+                    <tr key={r.rowId}>
                       <td>
                         <input
                           type="text"
@@ -136,23 +136,16 @@ export function TablaCubicacion({ rows, nSemanas, catalogo, etapasActivas, onTog
                       <td>
                         <span className={estadoClase[r.estado]}>{r.estado}</span>
                       </td>
-                      <td className="fila-acciones">
-                        <label className="fila-toggle" title={r.activa === false ? 'Activar fila' : 'Desactivar fila'}>
-                          <input
-                            type="checkbox"
-                            checked={r.activa !== false}
-                            onChange={() => update(r.rowId, { activa: r.activa === false })}
-                          />
-                          <span className="fila-toggle__pista" aria-hidden="true" />
-                        </label>
+                      <td>
                         {r.removable && (
                           <button
                             type="button"
                             className="btn-icon"
                             onClick={() => remove(r.rowId)}
                             aria-label="Eliminar fila"
+                            title="Eliminar fila (borrado permanente)"
                           >
-                            ✕
+                            🗑
                           </button>
                         )}
                       </td>

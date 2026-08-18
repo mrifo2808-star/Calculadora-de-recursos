@@ -13,7 +13,9 @@ export function PanelInstrucciones() {
       <h3>2. Gestión del proyecto</h3>
       <p className="panel__texto">
         Cargos fijos del proyecto (JP, GE, TLs, etc.), separados de la producción. Ajusta Cantidad, Frecuencia y HH
-        unitarias directamente — no dependen del catálogo de recursos.
+        unitarias directamente — no dependen del catálogo de recursos. Como estos cargos suelen reutilizarse entre
+        proyectos, cada fila tiene un interruptor «Activa» (junto a «✕»): desactivarla la deja visible pero atenuada
+        y sin sumar horas, sin perder los datos — a diferencia de Cubicación, aquí no se elimina, se desactiva.
       </p>
 
       <h3>3. Cubicación</h3>
@@ -21,19 +23,15 @@ export function PanelInstrucciones() {
         Por cada tarea: elige <strong>Tipo</strong> y luego <strong>Recurso</strong> (el recurso ya incluye la
         duración/extensión, ej. «Video After — 1 min»). Si el Tipo tiene un solo recurso válido se autocompleta. Sin
         selección completa, la fila queda <span className="pill pill--pendiente">PENDIENTE DE CATALOGAR</span> y no
-        suma horas. Usa «+ Agregar fila» para sumar recursos en cualquier sección.
+        suma horas. Usa «+ Agregar fila» para sumar recursos en cualquier sección. Como cada recurso es específico de
+        esa cubicación (no se reutiliza entre proyectos), una fila que no aplica se elimina con 🗑 en vez de
+        desactivarse.
       </p>
       <p className="panel__texto">
-        Cada etapa (las secciones de Cubicación e igual «Gestión del proyecto») tiene un interruptor «Etapa activa» /
-        «Etapa desactivada» en su encabezado. Un curso que no necesita, por ejemplo, Implementación o Demostración
-        puede desactivar esa etapa completa: sus recursos dejan de sumar horas en Resumen y en el Excel exportado, sin
-        perder los datos — se pueden reactivar en cualquier momento.
-      </p>
-      <p className="panel__texto">
-        Dentro de una etapa activa, cada fila tiene además su propio interruptor pequeño (al final de la fila, junto a
-        «✕»): desactiva una sola fila sin desactivar toda la etapa. La fila queda visible pero atenuada y no suma
-        horas; en el Excel exportado se mantiene con la columna <strong>Activa = No</strong> para dejar registro de
-        que existió pero se excluyó del cálculo.
+        Cada etapa (las secciones de Cubicación e igual «Gestión del proyecto») tiene además un interruptor «Etapa
+        activa» / «Etapa desactivada» en su encabezado. Un curso que no necesita, por ejemplo, Implementación o
+        Demostración puede desactivar esa etapa completa: sus recursos dejan de sumar horas en Resumen y en el Excel
+        exportado, sin perder los datos — se pueden reactivar en cualquier momento.
       </p>
 
       <h3>4. Catálogo</h3>

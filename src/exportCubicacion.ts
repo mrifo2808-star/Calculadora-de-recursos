@@ -55,8 +55,7 @@ export function descargarCubicacionExcel(datos: DatosExport): void {
       'HH DG': r.hhDG,
       'HH SOP': r.hhSOP,
       'Total HH': r.total,
-      Estado: r.activa === false ? 'Desactivado' : r.estado,
-      Activa: r.activa === false ? 'No (excluida del total)' : 'Sí',
+      Estado: r.estado,
     })),
   );
   hojaCubicacion['!cols'] = [
@@ -71,7 +70,6 @@ export function descargarCubicacionExcel(datos: DatosExport): void {
     { wch: 8 },
     { wch: 10 },
     { wch: 22 },
-    { wch: 20 },
   ];
 
   const filasResumen = [

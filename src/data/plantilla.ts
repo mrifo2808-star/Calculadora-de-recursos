@@ -64,7 +64,6 @@ const row = (
   frecuencia,
   recursoId,
   removable,
-  activa: true,
 });
 
 export const produccionDefault = (): ProduccionRow[] => [
