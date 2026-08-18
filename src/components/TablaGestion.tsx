@@ -13,7 +13,9 @@ interface Props {
 
 export function TablaGestion({ rows, nSemanas, activa, onToggleActiva, onChange, onAdd }: Props) {
   const calculadas = calcularGestion(rows, nSemanas);
-  const totalGestion = calculadas.reduce((a, r) => a + r.total, 0);
+  // Las filas desactivadas se muestran (atenuadas) pero no suman al total, igual que en
+  // el Resumen general y en la exportacion a Excel.
+  const totalGestion = calculadas.filter((r) => r.activa !== false).reduce((a, r) => a + r.total, 0);
 
   const update = (rowId: string, patch: Partial<GestionRow>) =>
     onChange(rows.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r)));
@@ -50,7 +52,7 @@ export function TablaGestion({ rows, nSemanas, activa, onToggleActiva, onChange,
           </thead>
           <tbody>
             {calculadas.map((r) => (
-              <tr key={r.rowId}>
+              <tr key={r.rowId} className={r.activa === false ? 'fila--desactivada' : undefined}>
                 <td>
                   <input
                     type="text"
@@ -91,7 +93,15 @@ export function TablaGestion({ rows, nSemanas, activa, onToggleActiva, onChange,
                   />
                 </td>
                 <td className="num">{fmt(r.total)}</td>
-                <td>
+                <td className="fila-acciones">
+                  <label className="fila-toggle" title={r.activa === false ? 'Activar fila' : 'Desactivar fila'}>
+                    <input
+                      type="checkbox"
+                      checked={r.activa !== false}
+                      onChange={() => update(r.rowId, { activa: r.activa === false })}
+                    />
+                    <span className="fila-toggle__pista" aria-hidden="true" />
+                  </label>
                   {r.removable && (
                     <button type="button" className="btn-icon" onClick={() => remove(r.rowId)} aria-label="Eliminar fila">
                       ✕

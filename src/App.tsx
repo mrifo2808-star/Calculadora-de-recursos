@@ -93,14 +93,20 @@ function App() {
   }, []);
 
   const { produccionCalc, gestionCalc, resumen } = useMemo(() => {
-    // Una etapa desactivada excluye todas sus filas del calculo y de la exportacion:
-    // no solo se ocultan en la UI, tampoco suman HH en Resumen/Excel.
-    const produccionActiva = estado.produccion.filter((r) => etapaActiva(estado.etapasActivas, r.seccion));
-    const gestionActiva = etapaActiva(estado.etapasActivas, ETAPA_GESTION) ? estado.gestion : [];
+    // Una etapa desactivada excluye TODAS sus filas del calculo y de la exportacion. Una
+    // fila individual desactivada (dentro de una etapa activa) se mantiene visible en la
+    // exportacion (para dejar registro) pero igual se excluye de los totales de Resumen.
+    const produccionEnEtapasActivas = estado.produccion.filter((r) => etapaActiva(estado.etapasActivas, r.seccion));
+    const gestionEnEtapaActiva = etapaActiva(estado.etapasActivas, ETAPA_GESTION) ? estado.gestion : [];
     const seccionesActivas = SECCIONES.filter((s) => etapaActiva(estado.etapasActivas, s));
-    const produccionCalc = calcularProduccion(produccionActiva, estado.parametros.nSemanas, catalogo);
-    const gestionCalc = calcularGestion(gestionActiva, estado.parametros.nSemanas);
-    const resumen = calcularResumen(produccionCalc, gestionCalc, estado.parametros.nCursos, seccionesActivas);
+
+    const produccionCalc = calcularProduccion(produccionEnEtapasActivas, estado.parametros.nSemanas, catalogo);
+    const gestionCalc = calcularGestion(gestionEnEtapaActiva, estado.parametros.nSemanas);
+
+    const produccionParaTotales = produccionCalc.filter((r) => r.activa !== false);
+    const gestionParaTotales = gestionCalc.filter((r) => r.activa !== false);
+    const resumen = calcularResumen(produccionParaTotales, gestionParaTotales, estado.parametros.nCursos, seccionesActivas);
+
     return { produccionCalc, gestionCalc, resumen };
   }, [estado, catalogo]);
 

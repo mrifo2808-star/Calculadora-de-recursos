@@ -476,6 +476,71 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+/* Fila individual desactivada dentro de una etapa activa: se conserva y se ve, pero
+   atenuada, para distinguirla de una fila normal sin pisar la semantica de "Estado"
+   (OK/Pendiente de catalogar) que ya usa esa misma fila. */
+.fila--desactivada td {
+  opacity: 0.5;
+}
+
+.fila-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+/* Version compacta de .etapa-toggle para usar dentro de una fila de tabla. */
+.fila-toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.fila-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.fila-toggle__pista {
+  position: relative;
+  width: 26px;
+  height: 14px;
+  border-radius: 999px;
+  background: #cdd5dd;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+.fila-toggle__pista::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+
+.fila-toggle input:checked + .fila-toggle__pista {
+  background: #10243e;
+}
+
+.fila-toggle input:checked + .fila-toggle__pista::after {
+  transform: translateX(12px);
+  background: #6fd3a8;
+}
+
+.fila-toggle input:focus-visible + .fila-toggle__pista {
+  outline: 2px solid #10243e;
+  outline-offset: 2px;
+}
+
 .tabs {
   display: flex;
   gap: 8px;

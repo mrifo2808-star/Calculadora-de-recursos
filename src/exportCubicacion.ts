@@ -36,9 +36,12 @@ export function descargarCubicacionExcel(datos: DatosExport): void {
       Factor: r.factor,
       'HH unitarias': r.hhUnitaria,
       'Total HH': r.total,
+      // Filas desactivadas se exportan igual (para dejar registro) pero marcadas: no
+      // suman en los totales de la hoja Resumen.
+      Activa: r.activa === false ? 'No (excluida del total)' : 'Sí',
     })),
   );
-  hojaGestion['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 12 }, { wch: 12 }];
+  hojaGestion['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 20 }];
 
   const hojaCubicacion = XLSX.utils.json_to_sheet(
     produccion.map((r) => ({
@@ -52,7 +55,8 @@ export function descargarCubicacionExcel(datos: DatosExport): void {
       'HH DG': r.hhDG,
       'HH SOP': r.hhSOP,
       'Total HH': r.total,
-      Estado: r.estado,
+      Estado: r.activa === false ? 'Desactivado' : r.estado,
+      Activa: r.activa === false ? 'No (excluida del total)' : 'Sí',
     })),
   );
   hojaCubicacion['!cols'] = [
@@ -67,6 +71,7 @@ export function descargarCubicacionExcel(datos: DatosExport): void {
     { wch: 8 },
     { wch: 10 },
     { wch: 22 },
+    { wch: 20 },
   ];
 
   const filasResumen = [

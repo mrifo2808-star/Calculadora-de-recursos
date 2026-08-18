@@ -29,6 +29,12 @@ export function PanelInstrucciones() {
         puede desactivar esa etapa completa: sus recursos dejan de sumar horas en Resumen y en el Excel exportado, sin
         perder los datos — se pueden reactivar en cualquier momento.
       </p>
+      <p className="panel__texto">
+        Dentro de una etapa activa, cada fila tiene además su propio interruptor pequeño (al final de la fila, junto a
+        «✕»): desactiva una sola fila sin desactivar toda la etapa. La fila queda visible pero atenuada y no suma
+        horas; en el Excel exportado se mantiene con la columna <strong>Activa = No</strong> para dejar registro de
+        que existió pero se excluyó del cálculo.
+      </p>
 
       <h3>4. Catálogo</h3>
       <p className="panel__texto">

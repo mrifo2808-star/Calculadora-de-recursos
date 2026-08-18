@@ -19,13 +19,13 @@ export const PARAMETROS_DEFAULT: ParametrosCurso = {
 };
 
 export const gestionDefault = (): GestionRow[] => [
-  { rowId: nextId('g'), cargo: 'Gestion JP', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.25, removable: false },
-  { rowId: nextId('g'), cargo: 'Gestion GE', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.25, removable: false },
-  { rowId: nextId('g'), cargo: 'Gestion DI TL', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.1, removable: false },
-  { rowId: nextId('g'), cargo: 'Gestion DG TL', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.1, removable: false },
-  { rowId: nextId('g'), cargo: 'Gestion QA TL', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.1, removable: false },
-  { rowId: nextId('g'), cargo: 'Gestion DI Senior', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 2, removable: false },
-  { rowId: nextId('g'), cargo: 'Bases Plantillas DG', cantidad: 1, frecuencia: 'Fijo', hhUnitaria: 12, removable: false },
+  { rowId: nextId('g'), cargo: 'Gestion JP', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.25, removable: false, activa: true },
+  { rowId: nextId('g'), cargo: 'Gestion GE', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.25, removable: false, activa: true },
+  { rowId: nextId('g'), cargo: 'Gestion DI TL', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.1, removable: false, activa: true },
+  { rowId: nextId('g'), cargo: 'Gestion DG TL', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.1, removable: false, activa: true },
+  { rowId: nextId('g'), cargo: 'Gestion QA TL', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.1, removable: false, activa: true },
+  { rowId: nextId('g'), cargo: 'Gestion DI Senior', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 2, removable: false, activa: true },
+  { rowId: nextId('g'), cargo: 'Bases Plantillas DG', cantidad: 1, frecuencia: 'Fijo', hhUnitaria: 12, removable: false, activa: true },
 ];
 
 /** Secciones fijas de Cubicacion, en el mismo orden que el Excel RC7. */
@@ -64,6 +64,7 @@ const row = (
   frecuencia,
   recursoId,
   removable,
+  activa: true,
 });
 
 export const produccionDefault = (): ProduccionRow[] => [
@@ -106,4 +107,5 @@ export const nuevaFilaGestion = (): GestionRow => ({
   frecuencia: 'Por semana',
   hhUnitaria: 0,
   removable: true,
+  activa: true,
 });

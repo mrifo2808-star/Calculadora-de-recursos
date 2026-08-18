@@ -27,6 +27,9 @@ export interface ProduccionRow {
   frecuencia: Frecuencia;
   /** true only for rows the user added themselves (can be deleted) */
   removable: boolean;
+  /** false = fila desactivada: se conserva pero se excluye del calculo de totales.
+   * Ausente (filas guardadas antes de esta funcionalidad) se trata como true. */
+  activa: boolean;
 }
 
 export interface GestionRow {
@@ -36,6 +39,9 @@ export interface GestionRow {
   frecuencia: Frecuencia;
   hhUnitaria: number;
   removable: boolean;
+  /** false = fila desactivada: se conserva pero se excluye del calculo de totales.
+   * Ausente (filas guardadas antes de esta funcionalidad) se trata como true. */
+  activa: boolean;
 }
 
 export interface ParametrosCurso {
