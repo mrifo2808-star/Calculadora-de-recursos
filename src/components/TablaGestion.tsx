@@ -5,13 +5,14 @@ import { fmt } from '../format';
 interface Props {
   rows: GestionRow[];
   nSemanas: number;
-  activa: boolean;
-  onToggleActiva: () => void;
   onChange: (rows: GestionRow[]) => void;
   onAdd: () => void;
 }
 
-export function TablaGestion({ rows, nSemanas, activa, onToggleActiva, onChange, onAdd }: Props) {
+/** Contenido de la "etapa" Gestion del proyecto dentro del listado de secciones de
+ * Cubicacion (ver TablaCubicacion): sin envoltorio de panel/encabezado/toggle propios —
+ * el padre ya la renderiza como una seccion mas y solo la monta cuando esta activa. */
+export function TablaGestion({ rows, nSemanas, onChange, onAdd }: Props) {
   const calculadas = calcularGestion(rows, nSemanas);
   // Las filas desactivadas se muestran (atenuadas) pero no suman al total, igual que en
   // el Resumen general y en la exportacion a Excel.
@@ -23,21 +24,11 @@ export function TablaGestion({ rows, nSemanas, activa, onToggleActiva, onChange,
   const remove = (rowId: string) => onChange(rows.filter((r) => r.rowId !== rowId));
 
   return (
-    <section className={activa ? 'panel' : 'panel seccion--desactivada'}>
-      <div className="seccion__header">
-        <h2>Gestión del proyecto</h2>
-        <label className="etapa-toggle">
-          <input type="checkbox" checked={activa} onChange={onToggleActiva} />
-          <span className="etapa-toggle__pista" aria-hidden="true" />
-          <span className="etapa-toggle__texto">{activa ? 'Etapa activa' : 'Etapa desactivada'}</span>
-        </label>
-      </div>
-      <p className="panel__hint">Cargos del proyecto, separados de producción. No consumen catálogo de recursos.</p>
-      {!activa && (
-        <p className="panel__hint">Etapa desactivada: sus cargos no se incluyen en el cálculo.</p>
-      )}
-      {activa && (
-      <>
+    <>
+      <p className="panel__hint">
+        Cargos del proyecto (JP, GE, TLs, etc.), separados de producción. No consumen catálogo de recursos. Se
+        reutilizan entre proyectos, por eso cada fila se desactiva en vez de eliminarse.
+      </p>
       <div className="tabla-scroll">
         <table className="tabla">
           <thead>
@@ -120,11 +111,9 @@ export function TablaGestion({ rows, nSemanas, activa, onToggleActiva, onChange,
           </tfoot>
         </table>
       </div>
-      <button type="button" className="btn-secundario" onClick={onAdd}>
+      <button type="button" className="btn-secundario btn-secundario--sm" onClick={onAdd}>
         + Agregar cargo
       </button>
-      </>
-      )}
-    </section>
+    </>
   );
 }

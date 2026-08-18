@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { PanelParametros } from './components/PanelParametros';
-import { TablaGestion } from './components/TablaGestion';
 import { TablaCubicacion } from './components/TablaCubicacion';
 import { PanelCatalogo } from './components/PanelCatalogo';
 import { PanelResumen } from './components/PanelResumen';
@@ -159,15 +158,6 @@ function App() {
         exportando={exportando}
       />
 
-      <TablaGestion
-        rows={estado.gestion}
-        nSemanas={estado.parametros.nSemanas}
-        activa={etapaActiva(estado.etapasActivas, ETAPA_GESTION)}
-        onToggleActiva={() => toggleEtapa(ETAPA_GESTION)}
-        onChange={(gestion) => setEstado((e) => ({ ...e, gestion }))}
-        onAdd={() => setEstado((e) => ({ ...e, gestion: [...e.gestion, nuevaFilaGestion()] }))}
-      />
-
       <nav className="tabs">
         <button className={vista === 'cubicacion' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'} onClick={() => setVista('cubicacion')}>
           Cubicación
@@ -195,6 +185,9 @@ function App() {
           onToggleEtapa={toggleEtapa}
           onChange={(produccion) => setEstado((e) => ({ ...e, produccion }))}
           onAdd={(seccion) => setEstado((e) => ({ ...e, produccion: [...e.produccion, nuevaFilaProduccion(seccion)] }))}
+          gestionRows={estado.gestion}
+          onChangeGestion={(gestion) => setEstado((e) => ({ ...e, gestion }))}
+          onAddGestion={() => setEstado((e) => ({ ...e, gestion: [...e.gestion, nuevaFilaGestion()] }))}
         />
       </div>
       <div style={{ display: vista === 'catalogo' ? 'block' : 'none' }}>

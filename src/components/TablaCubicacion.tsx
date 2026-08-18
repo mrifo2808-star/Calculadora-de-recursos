@@ -1,17 +1,21 @@
-import { FRECUENCIAS, type ProduccionRow, type RecursoCatalogo } from '../types';
+import { FRECUENCIAS, type GestionRow, type ProduccionRow, type RecursoCatalogo } from '../types';
 import { calcularProduccion } from '../calc';
 import { fmt } from '../format';
 import { CascadaSelector } from './CascadaSelector';
-import { SECCIONES } from '../data/plantilla';
+import { TablaGestion } from './TablaGestion';
+import { ETAPA_GESTION, ETAPAS } from '../data/plantilla';
 
 interface Props {
   rows: ProduccionRow[];
   nSemanas: number;
   catalogo: RecursoCatalogo[];
   etapasActivas: Record<string, boolean>;
-  onToggleEtapa: (seccion: string) => void;
+  onToggleEtapa: (etapa: string) => void;
   onChange: (rows: ProduccionRow[]) => void;
   onAdd: (seccion: string) => void;
+  gestionRows: GestionRow[];
+  onChangeGestion: (rows: GestionRow[]) => void;
+  onAddGestion: () => void;
 }
 
 const estadoClase: Record<string, string> = {
@@ -20,7 +24,23 @@ const estadoClase: Record<string, string> = {
   VACIA: 'pill pill--vacia',
 };
 
-export function TablaCubicacion({ rows, nSemanas, catalogo, etapasActivas, onToggleEtapa, onChange, onAdd }: Props) {
+/** Gestion del proyecto es, para efectos de visualizacion y toggle, una etapa mas dentro
+ * del mismo listado — no un bloque fijo aparte. ETAPAS ya trae GESTION al final (ver
+ * data/plantilla.ts), asi que por defecto queda como la ultima seccion de la lista. */
+const etiquetaEtapa = (etapa: string): string => (etapa === ETAPA_GESTION ? 'Gestión del proyecto' : etapa);
+
+export function TablaCubicacion({
+  rows,
+  nSemanas,
+  catalogo,
+  etapasActivas,
+  onToggleEtapa,
+  onChange,
+  onAdd,
+  gestionRows,
+  onChangeGestion,
+  onAddGestion,
+}: Props) {
   const calculadas = calcularProduccion(rows, nSemanas, catalogo);
 
   const update = (rowId: string, patch: Partial<ProduccionRow>) =>
@@ -34,17 +54,18 @@ export function TablaCubicacion({ rows, nSemanas, catalogo, etapasActivas, onTog
       <p className="panel__hint">
         Elige Tipo y luego Recurso (el Recurso ya incluye la duración/extensión, ej. «Video After — 1 min»). Solo se
         muestran recursos <strong>Validados</strong> del catálogo. Sin selección completa, la fila queda «Pendiente de
-        catalogar». Desactiva una etapa completa con su interruptor si el curso no la necesita: sus recursos dejan de
-        sumar horas y desaparecen del cálculo.
+        catalogar». Desactiva una etapa completa (incluida «Gestión del proyecto») con su interruptor si el curso no
+        la necesita: sus recursos dejan de sumar horas y desaparecen del cálculo.
       </p>
-      {SECCIONES.map((seccion) => {
-        const activa = etapasActivas[seccion] !== false;
-        const filas = calculadas.filter((r) => r.seccion === seccion);
+      {ETAPAS.map((etapa) => {
+        const activa = etapasActivas[etapa] !== false;
+        const esGestion = etapa === ETAPA_GESTION;
+        const filas = esGestion ? [] : calculadas.filter((r) => r.seccion === etapa);
         const cabecera = (
           <div className="seccion__header">
-            <h3>{seccion}</h3>
+            <h3>{etiquetaEtapa(etapa)}</h3>
             <label className="etapa-toggle">
-              <input type="checkbox" checked={activa} onChange={() => onToggleEtapa(seccion)} />
+              <input type="checkbox" checked={activa} onChange={() => onToggleEtapa(etapa)} />
               <span className="etapa-toggle__pista" aria-hidden="true" />
               <span className="etapa-toggle__texto">{activa ? 'Etapa activa' : 'Etapa desactivada'}</span>
             </label>
@@ -53,25 +74,37 @@ export function TablaCubicacion({ rows, nSemanas, catalogo, etapasActivas, onTog
 
         if (!activa) {
           return (
-            <div key={seccion} className="seccion seccion--desactivada">
+            <div key={etapa} className="seccion seccion--desactivada">
               {cabecera}
-              <p className="panel__hint">Etapa desactivada: sus recursos no se incluyen en el cálculo ni en la cubicación.</p>
+              <p className="panel__hint">
+                Etapa desactivada: sus {esGestion ? 'cargos' : 'recursos'} no se incluyen en el cálculo ni en la
+                cubicación.
+              </p>
             </div>
           );
         }
 
-        if (seccion === 'RECURSOS ADICIONALES' && filas.length === 0) {
+        if (esGestion) {
           return (
-            <div key={seccion} className="seccion">
+            <div key={etapa} className="seccion">
               {cabecera}
-              <button type="button" className="btn-secundario" onClick={() => onAdd(seccion)}>
+              <TablaGestion rows={gestionRows} nSemanas={nSemanas} onChange={onChangeGestion} onAdd={onAddGestion} />
+            </div>
+          );
+        }
+
+        if (etapa === 'RECURSOS ADICIONALES' && filas.length === 0) {
+          return (
+            <div key={etapa} className="seccion">
+              {cabecera}
+              <button type="button" className="btn-secundario" onClick={() => onAdd(etapa)}>
                 + Agregar recurso
               </button>
             </div>
           );
         }
         return (
-          <div key={seccion} className="seccion">
+          <div key={etapa} className="seccion">
             {cabecera}
             <div className="tabla-scroll">
               <table className="tabla tabla--fija-primera">
@@ -154,7 +187,7 @@ export function TablaCubicacion({ rows, nSemanas, catalogo, etapasActivas, onTog
                 </tbody>
               </table>
             </div>
-            <button type="button" className="btn-secundario btn-secundario--sm" onClick={() => onAdd(seccion)}>
+            <button type="button" className="btn-secundario btn-secundario--sm" onClick={() => onAdd(etapa)}>
               + Agregar fila
             </button>
           </div>

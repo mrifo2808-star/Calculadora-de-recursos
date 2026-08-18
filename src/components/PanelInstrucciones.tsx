@@ -10,15 +10,7 @@ export function PanelInstrucciones() {
         que multiplica cualquier fila con Frecuencia «Por semana» (las demás frecuencias usan Factor = 1).
       </p>
 
-      <h3>2. Gestión del proyecto</h3>
-      <p className="panel__texto">
-        Cargos fijos del proyecto (JP, GE, TLs, etc.), separados de la producción. Ajusta Cantidad, Frecuencia y HH
-        unitarias directamente — no dependen del catálogo de recursos. Como estos cargos suelen reutilizarse entre
-        proyectos, cada fila tiene un interruptor «Activa» (junto a «✕»): desactivarla la deja visible pero atenuada
-        y sin sumar horas, sin perder los datos — a diferencia de Cubicación, aquí no se elimina, se desactiva.
-      </p>
-
-      <h3>3. Cubicación</h3>
+      <h3>2. Cubicación</h3>
       <p className="panel__texto">
         Por cada tarea: elige <strong>Tipo</strong> y luego <strong>Recurso</strong> (el recurso ya incluye la
         duración/extensión, ej. «Video After — 1 min»). Si el Tipo tiene un solo recurso válido se autocompleta. Sin
@@ -28,13 +20,20 @@ export function PanelInstrucciones() {
         desactivarse.
       </p>
       <p className="panel__texto">
-        Cada etapa (las secciones de Cubicación e igual «Gestión del proyecto») tiene además un interruptor «Etapa
-        activa» / «Etapa desactivada» en su encabezado. Un curso que no necesita, por ejemplo, Implementación o
-        Demostración puede desactivar esa etapa completa: sus recursos dejan de sumar horas en Resumen y en el Excel
-        exportado, sin perder los datos — se pueden reactivar en cualquier momento.
+        La lista de secciones incluye, al final, <strong>«Gestión del proyecto»</strong> (cargos JP, GE, TLs, etc.):
+        es una sección más de Cubicación, no un bloque aparte. A diferencia de los recursos, estos cargos suelen
+        reutilizarse entre proyectos, así que cada fila de Gestión tiene su propio interruptor «Activa» (junto a
+        «✕») en vez de un botón de eliminar: desactivarla la deja visible pero atenuada y sin sumar horas, sin perder
+        los datos.
+      </p>
+      <p className="panel__texto">
+        Además, cada sección (incluida «Gestión del proyecto») tiene un interruptor «Etapa activa» / «Etapa
+        desactivada» en su encabezado. Un curso que no necesita, por ejemplo, Implementación o Demostración —o que no
+        lleva Gestión propia— puede desactivar esa etapa completa: sus filas dejan de sumar horas en Resumen y en el
+        Excel exportado, sin perder los datos — se pueden reactivar en cualquier momento.
       </p>
 
-      <h3>4. Catálogo</h3>
+      <h3>3. Catálogo</h3>
       <p className="panel__texto">
         Solo los recursos <span className="pill pill--ok">Validado</span> son seleccionables en Cubicación;{' '}
         <span className="pill pill--vacia">Pendiente</span>/<span className="pill pill--vacia">Histórico</span>{' '}
@@ -43,13 +42,13 @@ export function PanelInstrucciones() {
         eso para todo el equipo, no solo para ti.
       </p>
 
-      <h3>5. Resumen</h3>
+      <h3>4. Resumen</h3>
       <p className="panel__texto">
         Totales por curso y por proyecto (HH DI/DG/SOP, subtotales por sección) y el estado de la cubicación
         (cuántas filas faltan por catalogar).
       </p>
 
-      <h3>6. Acceso</h3>
+      <h3>5. Acceso</h3>
       <p className="panel__texto">
         La clave de acceso es compartida por todo el equipo. La sesión queda guardada en el dispositivo hasta usar
         «Cerrar sesión» (al final de la página).
