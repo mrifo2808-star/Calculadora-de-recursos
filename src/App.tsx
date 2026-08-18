@@ -6,7 +6,17 @@ import { TablaCubicacion } from './components/TablaCubicacion';
 import { PanelCatalogo } from './components/PanelCatalogo';
 import { PanelResumen } from './components/PanelResumen';
 import { PanelInstrucciones } from './components/PanelInstrucciones';
-import { PARAMETROS_DEFAULT, gestionDefault, nuevaFilaGestion, nuevaFilaProduccion, produccionDefault, resetContadorId, SECCIONES } from './data/plantilla';
+import {
+  ETAPA_GESTION,
+  etapasActivasDefault,
+  PARAMETROS_DEFAULT,
+  gestionDefault,
+  nuevaFilaGestion,
+  nuevaFilaProduccion,
+  produccionDefault,
+  resetContadorId,
+  SECCIONES,
+} from './data/plantilla';
 import { calcularGestion, calcularProduccion, calcularResumen } from './calc';
 import type { GestionRow, ParametrosCurso, ProduccionRow } from './types';
 import { useCatalog } from './CatalogContext';
@@ -15,20 +25,43 @@ import { useConfirm } from './ConfirmModal';
 
 const STORAGE_KEY = 'welearn-calculadora-v1';
 
+/** Una etapa sin entrada explicita en el mapa se considera activa (compatibilidad con
+ * estados guardados antes de esta funcionalidad). Funcion pura de modulo (no de
+ * componente) para poder referenciarla dentro de un useMemo sin generar dependencias
+ * inestables. */
+const etapaActiva = (etapasActivas: Record<string, boolean>, etapa: string): boolean => etapasActivas[etapa] !== false;
+
 interface Estado {
   parametros: ParametrosCurso;
   gestion: GestionRow[];
   produccion: ProduccionRow[];
+  /** Etapa (seccion de Cubicacion o Gestion) -> activa. Ausente/undefined = activa. */
+  etapasActivas: Record<string, boolean>;
 }
 
 function estadoInicial(): Estado {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Estado;
+    if (raw) {
+      const guardado = JSON.parse(raw) as Partial<Estado>;
+      return {
+        parametros: guardado.parametros ?? PARAMETROS_DEFAULT,
+        gestion: guardado.gestion ?? gestionDefault(),
+        produccion: guardado.produccion ?? produccionDefault(),
+        // Merge con el default: estados guardados antes de esta funcionalidad no tienen
+        // etapasActivas, y una etapa nueva que se agregue a futuro debe nacer activa.
+        etapasActivas: { ...etapasActivasDefault(), ...guardado.etapasActivas },
+      };
+    }
   } catch {
     // localStorage no disponible o dato corrupto: seguimos con la plantilla
   }
-  return { parametros: PARAMETROS_DEFAULT, gestion: gestionDefault(), produccion: produccionDefault() };
+  return {
+    parametros: PARAMETROS_DEFAULT,
+    gestion: gestionDefault(),
+    produccion: produccionDefault(),
+    etapasActivas: etapasActivasDefault(),
+  };
 }
 
 type Vista = 'cubicacion' | 'catalogo' | 'resumen' | 'instrucciones';
@@ -60,9 +93,14 @@ function App() {
   }, []);
 
   const { produccionCalc, gestionCalc, resumen } = useMemo(() => {
-    const produccionCalc = calcularProduccion(estado.produccion, estado.parametros.nSemanas, catalogo);
-    const gestionCalc = calcularGestion(estado.gestion, estado.parametros.nSemanas);
-    const resumen = calcularResumen(produccionCalc, gestionCalc, estado.parametros.nCursos, SECCIONES);
+    // Una etapa desactivada excluye todas sus filas del calculo y de la exportacion:
+    // no solo se ocultan en la UI, tampoco suman HH en Resumen/Excel.
+    const produccionActiva = estado.produccion.filter((r) => etapaActiva(estado.etapasActivas, r.seccion));
+    const gestionActiva = etapaActiva(estado.etapasActivas, ETAPA_GESTION) ? estado.gestion : [];
+    const seccionesActivas = SECCIONES.filter((s) => etapaActiva(estado.etapasActivas, s));
+    const produccionCalc = calcularProduccion(produccionActiva, estado.parametros.nSemanas, catalogo);
+    const gestionCalc = calcularGestion(gestionActiva, estado.parametros.nSemanas);
+    const resumen = calcularResumen(produccionCalc, gestionCalc, estado.parametros.nCursos, seccionesActivas);
     return { produccionCalc, gestionCalc, resumen };
   }, [estado, catalogo]);
 
@@ -73,8 +111,16 @@ function App() {
     });
     if (!ok) return;
     resetContadorId();
-    setEstado({ parametros: PARAMETROS_DEFAULT, gestion: gestionDefault(), produccion: produccionDefault() });
+    setEstado({
+      parametros: PARAMETROS_DEFAULT,
+      gestion: gestionDefault(),
+      produccion: produccionDefault(),
+      etapasActivas: etapasActivasDefault(),
+    });
   };
+
+  const toggleEtapa = (etapa: string) =>
+    setEstado((e) => ({ ...e, etapasActivas: { ...e.etapasActivas, [etapa]: !etapaActiva(e.etapasActivas, etapa) } }));
 
   const exportarExcel = async () => {
     setExportando(true);
@@ -110,6 +156,8 @@ function App() {
       <TablaGestion
         rows={estado.gestion}
         nSemanas={estado.parametros.nSemanas}
+        activa={etapaActiva(estado.etapasActivas, ETAPA_GESTION)}
+        onToggleActiva={() => toggleEtapa(ETAPA_GESTION)}
         onChange={(gestion) => setEstado((e) => ({ ...e, gestion }))}
         onAdd={() => setEstado((e) => ({ ...e, gestion: [...e.gestion, nuevaFilaGestion()] }))}
       />
@@ -137,6 +185,8 @@ function App() {
           rows={estado.produccion}
           nSemanas={estado.parametros.nSemanas}
           catalogo={catalogo}
+          etapasActivas={estado.etapasActivas}
+          onToggleEtapa={toggleEtapa}
           onChange={(produccion) => setEstado((e) => ({ ...e, produccion }))}
           onAdd={(seccion) => setEstado((e) => ({ ...e, produccion: [...e.produccion, nuevaFilaProduccion(seccion)] }))}
         />

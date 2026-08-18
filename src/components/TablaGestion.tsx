@@ -5,11 +5,13 @@ import { fmt } from '../format';
 interface Props {
   rows: GestionRow[];
   nSemanas: number;
+  activa: boolean;
+  onToggleActiva: () => void;
   onChange: (rows: GestionRow[]) => void;
   onAdd: () => void;
 }
 
-export function TablaGestion({ rows, nSemanas, onChange, onAdd }: Props) {
+export function TablaGestion({ rows, nSemanas, activa, onToggleActiva, onChange, onAdd }: Props) {
   const calculadas = calcularGestion(rows, nSemanas);
   const totalGestion = calculadas.reduce((a, r) => a + r.total, 0);
 
@@ -19,9 +21,21 @@ export function TablaGestion({ rows, nSemanas, onChange, onAdd }: Props) {
   const remove = (rowId: string) => onChange(rows.filter((r) => r.rowId !== rowId));
 
   return (
-    <section className="panel">
-      <h2>Gestión del proyecto</h2>
+    <section className={activa ? 'panel' : 'panel seccion--desactivada'}>
+      <div className="seccion__header">
+        <h2>Gestión del proyecto</h2>
+        <label className="etapa-toggle">
+          <input type="checkbox" checked={activa} onChange={onToggleActiva} />
+          <span className="etapa-toggle__pista" aria-hidden="true" />
+          <span className="etapa-toggle__texto">{activa ? 'Etapa activa' : 'Etapa desactivada'}</span>
+        </label>
+      </div>
       <p className="panel__hint">Cargos del proyecto, separados de producción. No consumen catálogo de recursos.</p>
+      {!activa && (
+        <p className="panel__hint">Etapa desactivada: sus cargos no se incluyen en el cálculo.</p>
+      )}
+      {activa && (
+      <>
       <div className="tabla-scroll">
         <table className="tabla">
           <thead>
@@ -99,6 +113,8 @@ export function TablaGestion({ rows, nSemanas, onChange, onAdd }: Props) {
       <button type="button" className="btn-secundario" onClick={onAdd}>
         + Agregar cargo
       </button>
+      </>
+      )}
     </section>
   );
 }

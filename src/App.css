@@ -406,6 +406,76 @@ button:focus-visible {
   border-radius: 6px;
 }
 
+.seccion__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.seccion--desactivada {
+  opacity: 0.7;
+}
+
+/* Interruptor de etapa (activa/desactiva una seccion completa de Cubicacion o Gestion
+   del calculo). El checkbox real queda oculto pero accesible; la "pista" + circulo son
+   solo estetica sobre el. */
+.etapa-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #45505c;
+  user-select: none;
+}
+
+.etapa-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.etapa-toggle__pista {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  border-radius: 999px;
+  background: #cdd5dd;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+.etapa-toggle__pista::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+
+.etapa-toggle input:checked + .etapa-toggle__pista {
+  background: #10243e;
+}
+
+.etapa-toggle input:checked + .etapa-toggle__pista::after {
+  transform: translateX(16px);
+  background: #6fd3a8;
+}
+
+.etapa-toggle input:focus-visible + .etapa-toggle__pista {
+  outline: 2px solid #10243e;
+  outline-offset: 2px;
+}
+
 .tabs {
   display: flex;
   gap: 8px;

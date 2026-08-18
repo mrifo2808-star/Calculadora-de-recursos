@@ -8,6 +8,8 @@ interface Props {
   rows: ProduccionRow[];
   nSemanas: number;
   catalogo: RecursoCatalogo[];
+  etapasActivas: Record<string, boolean>;
+  onToggleEtapa: (seccion: string) => void;
   onChange: (rows: ProduccionRow[]) => void;
   onAdd: (seccion: string) => void;
 }
@@ -18,7 +20,7 @@ const estadoClase: Record<string, string> = {
   VACIA: 'pill pill--vacia',
 };
 
-export function TablaCubicacion({ rows, nSemanas, catalogo, onChange, onAdd }: Props) {
+export function TablaCubicacion({ rows, nSemanas, catalogo, etapasActivas, onToggleEtapa, onChange, onAdd }: Props) {
   const calculadas = calcularProduccion(rows, nSemanas, catalogo);
 
   const update = (rowId: string, patch: Partial<ProduccionRow>) =>
@@ -32,14 +34,36 @@ export function TablaCubicacion({ rows, nSemanas, catalogo, onChange, onAdd }: P
       <p className="panel__hint">
         Elige Tipo y luego Recurso (el Recurso ya incluye la duración/extensión, ej. «Video After — 1 min»). Solo se
         muestran recursos <strong>Validados</strong> del catálogo. Sin selección completa, la fila queda «Pendiente de
-        catalogar».
+        catalogar». Desactiva una etapa completa con su interruptor si el curso no la necesita: sus recursos dejan de
+        sumar horas y desaparecen del cálculo.
       </p>
       {SECCIONES.map((seccion) => {
+        const activa = etapasActivas[seccion] !== false;
         const filas = calculadas.filter((r) => r.seccion === seccion);
+        const cabecera = (
+          <div className="seccion__header">
+            <h3>{seccion}</h3>
+            <label className="etapa-toggle">
+              <input type="checkbox" checked={activa} onChange={() => onToggleEtapa(seccion)} />
+              <span className="etapa-toggle__pista" aria-hidden="true" />
+              <span className="etapa-toggle__texto">{activa ? 'Etapa activa' : 'Etapa desactivada'}</span>
+            </label>
+          </div>
+        );
+
+        if (!activa) {
+          return (
+            <div key={seccion} className="seccion seccion--desactivada">
+              {cabecera}
+              <p className="panel__hint">Etapa desactivada: sus recursos no se incluyen en el cálculo ni en la cubicación.</p>
+            </div>
+          );
+        }
+
         if (seccion === 'RECURSOS ADICIONALES' && filas.length === 0) {
           return (
             <div key={seccion} className="seccion">
-              <h3>{seccion}</h3>
+              {cabecera}
               <button type="button" className="btn-secundario" onClick={() => onAdd(seccion)}>
                 + Agregar recurso
               </button>
@@ -48,7 +72,7 @@ export function TablaCubicacion({ rows, nSemanas, catalogo, onChange, onAdd }: P
         }
         return (
           <div key={seccion} className="seccion">
-            <h3>{seccion}</h3>
+            {cabecera}
             <div className="tabla-scroll">
               <table className="tabla tabla--fija-primera">
                 <thead>

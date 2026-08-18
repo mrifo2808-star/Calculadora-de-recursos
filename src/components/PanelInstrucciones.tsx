@@ -23,6 +23,12 @@ export function PanelInstrucciones() {
         selección completa, la fila queda <span className="pill pill--pendiente">PENDIENTE DE CATALOGAR</span> y no
         suma horas. Usa «+ Agregar fila» para sumar recursos en cualquier sección.
       </p>
+      <p className="panel__texto">
+        Cada etapa (las secciones de Cubicación e igual «Gestión del proyecto») tiene un interruptor «Etapa activa» /
+        «Etapa desactivada» en su encabezado. Un curso que no necesita, por ejemplo, Implementación o Demostración
+        puede desactivar esa etapa completa: sus recursos dejan de sumar horas en Resumen y en el Excel exportado, sin
+        perder los datos — se pueden reactivar en cualquier momento.
+      </p>
 
       <h3>4. Catálogo</h3>
       <p className="panel__texto">

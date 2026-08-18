@@ -38,6 +38,17 @@ export const SECCIONES = [
   'RECURSOS ADICIONALES',
 ] as const;
 
+/** Pseudo-etapa para la tabla de Gestion del proyecto (no es una seccion de Cubicacion,
+ * pero se activa/desactiva con el mismo mecanismo de toggle). */
+export const ETAPA_GESTION = 'GESTION';
+
+/** Todas las etapas activables del formulario (las secciones de Cubicacion + Gestion). */
+export const ETAPAS = [...SECCIONES, ETAPA_GESTION] as const;
+
+/** Todas las etapas activas por defecto. */
+export const etapasActivasDefault = (): Record<string, boolean> =>
+  Object.fromEntries(ETAPAS.map((etapa) => [etapa, true]));
+
 const row = (
   seccion: string,
   tarea: string,
