@@ -43,8 +43,8 @@ export function PanelResumen({ resumen, nCursos }: Props) {
         <table className="tabla">
           <thead>
             <tr>
-              <th>Sección</th>
-              <th>Total HH</th>
+              <th scope="col">Sección</th>
+              <th scope="col">Total HH</th>
             </tr>
           </thead>
           <tbody>

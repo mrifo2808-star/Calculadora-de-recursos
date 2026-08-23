@@ -123,15 +123,26 @@ export function PanelCatalogo() {
         Fuente de verdad de tarifas (horas). Solo <strong>Validado</strong> es seleccionable en Cubicación (
         {validados} de {catalogo.length} recursos). Pendiente/Histórico quedan como referencia.
       </p>
-      {cargando && <p className="panel__hint">Cargando catálogo compartido…</p>}
-      {error && <p className="panel__hint panel__hint--aviso">{error}</p>}
+      {cargando && (
+        <p className="panel__hint" role="status">
+          Cargando catálogo compartido…
+        </p>
+      )}
+      {error && (
+        <p className="panel__hint panel__hint--aviso" role="alert">
+          {error}
+        </p>
+      )}
       {!cargando && !error && fuenteRemota && (
-        <p className="panel__hint panel__hint--ok">
+        <p className="panel__hint panel__hint--ok" role="status">
           Catálogo sincronizado en vivo con el equipo (Supabase). Un cambio acá lo ven todos al instante.
         </p>
       )}
       {mensajeImport && (
-        <p className={`mensaje panel__hint ${mensajeImport.tipo === 'ok' ? 'panel__hint--ok' : 'panel__hint--aviso'}`}>
+        <p
+          className={`mensaje panel__hint ${mensajeImport.tipo === 'ok' ? 'panel__hint--ok' : 'panel__hint--aviso'}`}
+          role={mensajeImport.tipo === 'error' ? 'alert' : 'status'}
+        >
           <span>{mensajeImport.texto}</span>
           <button type="button" className="mensaje__cerrar" onClick={() => setMensajeImport(null)} aria-label="Cerrar mensaje">
             ✕
@@ -141,6 +152,7 @@ export function PanelCatalogo() {
       <div className="catalogo-filtros">
         <input
           type="search"
+          aria-label="Buscar en el catálogo"
           placeholder="Buscar tipo, recurso o extensión…"
           value={filtro}
           onChange={(e) => setFiltro(e.target.value)}
@@ -154,14 +166,14 @@ export function PanelCatalogo() {
         <table className="tabla">
           <thead>
             <tr>
-              <th>Estado</th>
-              <th>Tipo</th>
-              <th>Nombre visible</th>
-              <th>Extensión</th>
-              <th>Unidad</th>
-              <th>DI (HH)</th>
-              <th>DG (HH)</th>
-              <th>SOP (HH)</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Nombre visible</th>
+              <th scope="col">Extensión</th>
+              <th scope="col">Unidad</th>
+              <th scope="col">DI (HH)</th>
+              <th scope="col">DG (HH)</th>
+              <th scope="col">SOP (HH)</th>
             </tr>
           </thead>
           <tbody>

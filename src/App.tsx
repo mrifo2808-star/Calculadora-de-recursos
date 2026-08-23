@@ -158,17 +158,45 @@ function App() {
         exportando={exportando}
       />
 
-      <nav className="tabs">
-        <button className={vista === 'cubicacion' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'} onClick={() => setVista('cubicacion')}>
+      <nav className="tabs" role="tablist" aria-label="Secciones de la calculadora">
+        <button
+          id="tab-cubicacion"
+          role="tab"
+          aria-selected={vista === 'cubicacion'}
+          aria-controls="panel-cubicacion"
+          className={vista === 'cubicacion' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'}
+          onClick={() => setVista('cubicacion')}
+        >
           Cubicación
         </button>
-        <button className={vista === 'catalogo' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'} onClick={() => setVista('catalogo')}>
+        <button
+          id="tab-catalogo"
+          role="tab"
+          aria-selected={vista === 'catalogo'}
+          aria-controls="panel-catalogo"
+          className={vista === 'catalogo' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'}
+          onClick={() => setVista('catalogo')}
+        >
           Catálogo
         </button>
-        <button className={vista === 'resumen' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'} onClick={() => setVista('resumen')}>
+        <button
+          id="tab-resumen"
+          role="tab"
+          aria-selected={vista === 'resumen'}
+          aria-controls="panel-resumen"
+          className={vista === 'resumen' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'}
+          onClick={() => setVista('resumen')}
+        >
           Resumen
         </button>
-        <button className={vista === 'instrucciones' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'} onClick={() => setVista('instrucciones')}>
+        <button
+          id="tab-instrucciones"
+          role="tab"
+          aria-selected={vista === 'instrucciones'}
+          aria-controls="panel-instrucciones"
+          className={vista === 'instrucciones' ? 'tabs__btn tabs__btn--activo' : 'tabs__btn'}
+          onClick={() => setVista('instrucciones')}
+        >
           Instrucciones
         </button>
       </nav>
@@ -176,7 +204,7 @@ function App() {
       {/* Las 4 vistas quedan siempre montadas y se ocultan con display:none en vez de
           desmontarse: cambiar de tab no debe perder el scroll ni el estado interno
           (filtros del catalogo, etc.) de la vista que se deja de mostrar. */}
-      <div style={{ display: vista === 'cubicacion' ? 'block' : 'none' }}>
+      <div id="panel-cubicacion" role="tabpanel" aria-labelledby="tab-cubicacion" style={{ display: vista === 'cubicacion' ? 'block' : 'none' }}>
         <TablaCubicacion
           rows={estado.produccion}
           nSemanas={estado.parametros.nSemanas}
@@ -190,13 +218,13 @@ function App() {
           onAddGestion={() => setEstado((e) => ({ ...e, gestion: [...e.gestion, nuevaFilaGestion()] }))}
         />
       </div>
-      <div style={{ display: vista === 'catalogo' ? 'block' : 'none' }}>
+      <div id="panel-catalogo" role="tabpanel" aria-labelledby="tab-catalogo" style={{ display: vista === 'catalogo' ? 'block' : 'none' }}>
         <PanelCatalogo />
       </div>
-      <div style={{ display: vista === 'resumen' ? 'block' : 'none' }}>
+      <div id="panel-resumen" role="tabpanel" aria-labelledby="tab-resumen" style={{ display: vista === 'resumen' ? 'block' : 'none' }}>
         <PanelResumen resumen={resumen} nCursos={estado.parametros.nCursos} />
       </div>
-      <div style={{ display: vista === 'instrucciones' ? 'block' : 'none' }}>
+      <div id="panel-instrucciones" role="tabpanel" aria-labelledby="tab-instrucciones" style={{ display: vista === 'instrucciones' ? 'block' : 'none' }}>
         <PanelInstrucciones />
       </div>
 

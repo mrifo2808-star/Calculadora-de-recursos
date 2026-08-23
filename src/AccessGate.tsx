@@ -55,7 +55,9 @@ export function AccessGate({ children }: { children: ReactNode }) {
   if (sesion === 'cargando') {
     return (
       <div className="acceso">
-        <p className="acceso__cargando">Cargando…</p>
+        <p className="acceso__cargando" role="status">
+          Cargando…
+        </p>
       </div>
     );
   }
@@ -139,7 +141,11 @@ export function AccessGate({ children }: { children: ReactNode }) {
           </div>
         </label>
 
-        {error && <p className="acceso__error">Clave incorrecta. Intenta de nuevo.</p>}
+        {error && (
+          <p className="acceso__error" role="alert">
+            Clave incorrecta. Intenta de nuevo.
+          </p>
+        )}
 
         <button type="submit" className="acceso__btn" disabled={verificando || !clave.trim()}>
           {verificando ? 'Verificando…' : 'Ingresar'}

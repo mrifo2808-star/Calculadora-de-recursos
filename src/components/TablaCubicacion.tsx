@@ -110,16 +110,16 @@ export function TablaCubicacion({
               <table className="tabla tabla--fija-primera">
                 <thead>
                   <tr>
-                    <th>Tarea</th>
-                    <th>Tipo / Recurso</th>
-                    <th>Cantidad</th>
-                    <th>Frecuencia</th>
-                    <th>HH DI</th>
-                    <th>HH DG</th>
-                    <th>HH SOP</th>
-                    <th>Total HH</th>
-                    <th>Estado</th>
-                    <th aria-label="Acciones" />
+                    <th scope="col">Tarea</th>
+                    <th scope="col">Tipo / Recurso</th>
+                    <th scope="col">Cantidad</th>
+                    <th scope="col">Frecuencia</th>
+                    <th scope="col">HH DI</th>
+                    <th scope="col">HH DG</th>
+                    <th scope="col">HH SOP</th>
+                    <th scope="col">Total HH</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col" aria-label="Acciones" />
                   </tr>
                 </thead>
                 <tbody>

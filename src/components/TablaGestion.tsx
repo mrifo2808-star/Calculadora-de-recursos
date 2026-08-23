@@ -33,12 +33,12 @@ export function TablaGestion({ rows, nSemanas, onChange, onAdd }: Props) {
         <table className="tabla">
           <thead>
             <tr>
-              <th>Cargo</th>
-              <th>Cantidad</th>
-              <th>Frecuencia</th>
-              <th>HH unitarias</th>
-              <th>Total HH</th>
-              <th aria-label="Acciones" />
+              <th scope="col">Cargo</th>
+              <th scope="col">Cantidad</th>
+              <th scope="col">Frecuencia</th>
+              <th scope="col">HH unitarias</th>
+              <th scope="col">Total HH</th>
+              <th scope="col" aria-label="Acciones" />
             </tr>
           </thead>
           <tbody>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import './ConfirmModal.css';
 
 interface OpcionesConfirm {
@@ -37,6 +37,19 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     pedido?.resolver(valor);
     setPedido(null);
   };
+
+  // Cerrar con Escape es el comportamiento esperado de cualquier dialogo modal
+  // (equivalente a Cancelar); sin esto el usuario de teclado queda atrapado sin
+  // forma rapida de descartar el modal.
+  useEffect(() => {
+    if (!pedido) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') cerrar(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedido]);
 
   return (
     <ConfirmContext.Provider value={{ confirmar }}>

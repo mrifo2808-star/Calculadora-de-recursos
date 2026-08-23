@@ -243,7 +243,6 @@
 .tabla input[type='text']:focus {
   border-color: #cdd5dd;
   background: #fff;
-  outline: none;
 }
 
 .tabla select {
@@ -312,8 +311,13 @@
   color: #b3261e;
   cursor: pointer;
   font-size: 14px;
-  padding: 2px 6px;
+  padding: 6px 8px;
   border-radius: 4px;
+  min-width: 28px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-icon:hover {
@@ -364,7 +368,8 @@
   cursor: pointer;
   font-size: 15px;
   line-height: 1;
-  padding: 0 0 0 8px;
+  padding: 6px 8px;
+  margin: -6px -8px -6px 0;
   opacity: 0.7;
 }
 
@@ -374,7 +379,7 @@
 
 .tabla__vacio {
   text-align: center;
-  color: #8a94a0;
+  color: #5b6672;
   font-style: italic;
   padding: 18px 10px;
 }
@@ -495,6 +500,8 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   cursor: pointer;
+  padding: 7px 4px;
+  margin: -7px -4px;
 }
 
 .fila-toggle input {
