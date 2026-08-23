@@ -14,9 +14,12 @@
   --card:     #ffffff;  /* superficie (cards, tablas, modales) */
   --navy:     #0f2a4a;  /* primario oscuro: headers, thead, títulos */
   --navy2:    #16345c;  /* fin del degradado del header */
-  --blue:     #2b6cb0;  /* enlaces, foco, acciones secundarias (AA s/blanco) */
-  --celeste:  #4299e1;  /* acento de marca: botones primarios, barras (solo
-                           con texto blanco ≥14px bold o como relleno) */
+  --blue:     #2b6cb0;  /* ACCIÓN: botones primarios (texto blanco 5.42:1),
+                           enlaces, foco */
+  --blue-hover:#245a94; /* hover/active del primario (blanco 7.08:1) */
+  --celeste:  #4299e1;  /* acento DECORATIVO de marca: barras, bordes, logo,
+                           rellenos SIN texto encima (blanco da 3.05:1 — por
+                           eso nunca es fondo de botón ni de texto) */
   --celestebg:#ebf8ff;  /* fondo suave de acento (hover, badges info) */
   --text:     #1a202c;  /* texto principal (AA s/--bg y s/--card) */
   --muted:    #5a6b82;  /* texto secundario — YA oscurecido para AA 4.5:1
@@ -24,7 +27,11 @@
   --border:   #cbd5e0;  /* bordes de superficie */
 
   /* ── Semáforo (texto sobre su fondo suave: pares AA verificados) ─────── */
-  --green:    #2f855a;  --greenbg: #e6f6ee;  /* VERDE  */
+  --green:    #276749;  --greenbg: #e6f6ee;  /* VERDE — 6.01:1 s/greenbg,
+                           6.73:1 s/blanco, 6.26:1 s/--bg. El #2f855a
+                           original daba 4.06:1 s/greenbg (no-AA); #276749
+                           ya se usaba como ajuste local en paneles y queda
+                           como token oficial (v1.1, 23-08-2026) */
   --amber:    #8a5d00;  --amberbg: #fff6e5;  /* AMARILLO — usar SIEMPRE esta
                            variante para texto; #b9810d/#e5a400 solo como
                            relleno decorativo (barras, bordes, PPTX) */
