@@ -1,24 +1,34 @@
 .acceso {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--sp-4);
   padding: 24px;
-  background: radial-gradient(circle at 20% 20%, #16345a 0%, #0b1a2e 55%, #081422 100%);
+  background: radial-gradient(circle at 20% 20%, var(--navy2) 0%, #0b1a2e 55%, #081422 100%);
+}
+
+/* El pie estandar reutiliza var(--muted), calibrado para AA sobre fondos claros — sobre
+   este degradado oscuro necesita el mismo tono claro que ya usa el header de la app
+   (.app__subtitulo) para texto secundario sobre navy. */
+.acceso > .wl-footer {
+  color: #bcd7f0;
+  border-top-color: rgba(255, 255, 255, 0.18);
 }
 
 .acceso__cargando {
-  color: #cdd5dd;
+  color: #bcd7f0;
   font-size: 14px;
 }
 
 .acceso__tarjeta {
   width: 100%;
   max-width: 380px;
-  background: #fff;
-  border-radius: 16px;
+  background: var(--card);
+  border-radius: var(--radius);
   padding: 36px 32px 28px;
-  box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-modal);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -34,8 +44,8 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #eaf1fb;
-  color: #10243e;
+  background: var(--celestebg);
+  color: var(--navy);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,16 +53,16 @@
 }
 
 .acceso__tarjeta h1 {
-  font-size: 18px;
+  font-size: var(--fs-title);
   font-weight: 700;
-  color: #10243e;
+  color: var(--navy);
   margin: 0 0 6px;
   line-height: 1.3;
 }
 
 .acceso__subtitulo {
   font-size: 13px;
-  color: #5b6672;
+  color: var(--muted);
   margin: 0 0 22px;
 }
 
@@ -64,21 +74,21 @@
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  color: #45505c;
+  color: var(--muted);
 }
 
 .acceso__input-wrap {
   display: flex;
   align-items: stretch;
-  border: 1px solid #cdd5dd;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .acceso__input-wrap:focus-within {
-  border-color: #10243e;
-  box-shadow: 0 0 0 3px rgba(16, 36, 62, 0.12);
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.12);
 }
 
 .acceso__input-wrap input {
@@ -93,7 +103,7 @@
 
 .acceso__toggle {
   border: none;
-  background: #f4f6f8;
+  background: var(--bg);
   padding: 0 12px;
   cursor: pointer;
   font-size: 15px;
@@ -102,7 +112,7 @@
 .acceso__error {
   width: 100%;
   text-align: left;
-  color: #b3261e;
+  color: var(--red);
   font-size: 12px;
   font-weight: 600;
   margin: 8px 0 0;
@@ -112,18 +122,18 @@
   width: 100%;
   margin-top: 18px;
   border: none;
-  background: #10243e;
+  background: var(--navy);
   color: #fff;
   font-weight: 700;
   font-size: 14px;
   padding: 11px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
 .acceso__btn:hover:not(:disabled) {
-  background: #17335a;
+  background: var(--navy2);
 }
 
 .acceso__btn:disabled {
@@ -133,7 +143,7 @@
 
 .acceso__nota {
   font-size: 11px;
-  color: #5b6672;
+  color: var(--muted);
   margin: 18px 0 0;
   line-height: 1.5;
 }
@@ -160,5 +170,14 @@
   .acceso__tarjeta,
   .acceso__tarjeta--error {
     animation: none;
+  }
+}
+
+/* Sistema de diseno WeLearn: todo objetivo tactil sube a 44px en movil. */
+@media (max-width: 640px) {
+  .acceso__input-wrap input,
+  .acceso__toggle,
+  .acceso__btn {
+    min-height: var(--touch);
   }
 }

@@ -1,7 +1,7 @@
 .confirm-modal__overlay {
   position: fixed;
   inset: 0;
-  background: rgba(16, 36, 62, 0.55);
+  background: rgba(15, 42, 74, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,25 +13,25 @@
 .confirm-modal {
   width: 100%;
   max-width: 420px;
-  background: #fff;
-  border-radius: 12px;
-  border-top: 4px solid #10243e;
+  background: var(--card);
+  border-radius: var(--radius);
+  border-top: 4px solid var(--navy);
   padding: 24px 24px 20px;
-  box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-modal);
   animation: confirm-modal-aparecer 0.2s ease;
 }
 
 .confirm-modal h2 {
   font-size: 16px;
   font-weight: 700;
-  color: #10243e;
+  color: var(--navy);
   margin: 0 0 10px;
 }
 
 .confirm-modal__mensaje {
   font-size: 14px;
   line-height: 1.6;
-  color: #33404d;
+  color: var(--text);
   margin: 0;
 }
 
@@ -43,36 +43,36 @@
 }
 
 .confirm-modal__btn-cancelar {
-  border: 1px solid #cdd5dd;
-  background: #fff;
-  color: #45505c;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
   font-weight: 600;
   font-size: 13px;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .confirm-modal__btn-cancelar:hover {
-  border-color: #10243e;
-  color: #10243e;
+  border-color: var(--navy);
+  color: var(--navy);
 }
 
 .confirm-modal__btn-confirmar {
   border: none;
-  background: #10243e;
-  color: #6fd3a8;
+  background: var(--navy);
+  color: #fff;
   font-weight: 700;
   font-size: 13px;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
 
 .confirm-modal__btn-confirmar:hover {
-  background: #17335a;
+  background: var(--navy2);
 }
 
 @keyframes confirm-modal-fundido {

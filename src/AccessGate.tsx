@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type FormEvent, type Re
 import type { Session } from '@supabase/supabase-js';
 import './AccessGate.css';
 import { supabase, supabaseConfigurado } from './supabaseClient';
+import { FooterWeLearn } from './components/FooterWeLearn';
 
 /**
  * Cuenta compartida por todo el equipo (no es secreta, es solo el identificador de la
@@ -58,6 +59,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
         <p className="acceso__cargando" role="status">
           Cargando…
         </p>
+        <FooterWeLearn />
       </div>
     );
   }
@@ -80,6 +82,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
             <code>supabase/migracion_inicial.sql</code> en el repositorio.
           </p>
         </div>
+        <FooterWeLearn />
       </div>
     );
   }
@@ -156,6 +159,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
           este dispositivo hasta que uses «Cerrar sesión».
         </p>
       </form>
+      <FooterWeLearn />
     </div>
   );
 }

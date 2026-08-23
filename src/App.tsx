@@ -21,6 +21,7 @@ import type { GestionRow, ParametrosCurso, ProduccionRow } from './types';
 import { useCatalog } from './CatalogContext';
 import { useAccess } from './AccessGate';
 import { useConfirm } from './ConfirmModal';
+import { FooterWeLearn } from './components/FooterWeLearn';
 
 const STORAGE_KEY = 'welearn-calculadora-v1';
 
@@ -228,12 +229,17 @@ function App() {
         <PanelInstrucciones />
       </div>
 
-      <footer className="app__footer">
-        Catálogo de tasas sincronizado en vivo con el equipo (Supabase). Cubicación, gestión y parámetros del
-        proyecto se guardan solo en este navegador (localStorage) — nada de eso se envía a un servidor.
+      <footer className="app__footer" role="contentinfo">
+        <p className="app__footer-texto">
+          Catálogo de tasas sincronizado en vivo con el equipo (Supabase). Cubicación, gestión y parámetros del
+          proyecto se guardan solo en este navegador (localStorage) — nada de eso se envía a un servidor.
+        </p>
         <button type="button" className="app__cerrar-sesion" onClick={cerrarSesion}>
           Cerrar sesión
         </button>
+        {/* standalone=false: ya estamos dentro de un <footer role="contentinfo">, dos
+            landmarks contentinfo en la misma pagina no son validos (ver FooterWeLearn.tsx) */}
+        <FooterWeLearn standalone={false} />
       </footer>
     </div>
   );

@@ -13,24 +13,24 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  background: #10243e;
+  background: linear-gradient(135deg, var(--navy), var(--navy2));
   color: #fff;
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 24px 28px;
   position: sticky;
   top: 0;
   z-index: 30;
-  box-shadow: 0 8px 16px -12px rgba(16, 36, 62, 0.5);
+  box-shadow: var(--shadow-hdr);
 }
 
 .app__header h1 {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--fs-title);
+  font-weight: 800;
 }
 
 .app__subtitulo {
   margin-top: 4px;
-  color: #a9c1d9;
+  color: #bcd7f0;
   font-size: 14px;
 }
 
@@ -41,23 +41,27 @@
 }
 
 .app__total-label {
-  font-size: 12px;
+  font-size: 11.5px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #a9c1d9;
+  color: #bcd7f0;
 }
 
 .app__total-valor {
   font-size: 32px;
   font-weight: 700;
-  color: #6fd3a8;
+  color: #fff;
 }
 
 .app__footer {
   text-align: center;
   font-size: 12px;
-  color: #6b7785;
+  color: var(--muted);
   padding: 12px 0 0;
+}
+
+.app__footer-texto {
+  margin: 0;
 }
 
 .app__cerrar-sesion {
@@ -65,7 +69,7 @@
   margin: 6px auto 0;
   border: none;
   background: transparent;
-  color: #6b7785;
+  color: var(--muted);
   font-size: 12px;
   text-decoration: underline;
   cursor: pointer;
@@ -73,13 +77,13 @@
 }
 
 .app__cerrar-sesion:hover {
-  color: #10243e;
+  color: var(--navy);
 }
 
 .panel {
-  background: #fff;
-  border: 1px solid #dfe4ea;
-  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 20px 24px;
 }
 
@@ -94,29 +98,29 @@
 .panel__texto {
   font-size: 14px;
   line-height: 1.6;
-  color: #33404d;
+  color: var(--text);
   margin: 0 0 4px;
 }
 
 .panel__hint {
   font-size: 13px;
-  color: #5b6672;
+  color: var(--muted);
   margin: 6px 0 16px;
 }
 
 .panel__hint--aviso {
-  background: #fdf6e3;
-  color: #8a6d1a;
+  background: var(--amberbg);
+  color: var(--amber);
   border: 1px solid #f0e0a8;
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 8px 12px;
 }
 
 .panel__hint--ok {
-  background: #e2f6ec;
-  color: #1a7f4b;
+  background: var(--greenbg);
+  color: var(--green);
   border: 1px solid #bfe9d3;
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 8px 12px;
 }
 
@@ -129,13 +133,13 @@
 .panel h2 {
   font-size: 18px;
   font-weight: 700;
-  color: #10243e;
+  color: var(--navy);
 }
 
 .panel h3 {
   font-size: 14px;
   font-weight: 700;
-  color: #10243e;
+  color: var(--navy);
   margin: 20px 0 8px;
 }
 
@@ -152,14 +156,14 @@
   gap: 4px;
   font-size: 12px;
   font-weight: 600;
-  color: #45505c;
+  color: var(--muted);
 }
 
 .grid-parametros input[type='text'],
 .grid-parametros input[type='number'] {
   padding: 8px 10px;
-  border: 1px solid #cdd5dd;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 14px;
 }
 
@@ -168,7 +172,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #45505c;
+  color: var(--muted);
 }
 
 .tabla-scroll {
@@ -183,12 +187,15 @@
 
 .tabla th {
   text-align: left;
-  background: #f1f4f8;
-  color: #45505c;
-  font-weight: 600;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   padding: 8px 10px;
   white-space: nowrap;
-  border-bottom: 1px solid #dfe4ea;
+  border-bottom: 1px solid var(--navy);
 }
 
 .tabla td {
@@ -198,12 +205,12 @@
 }
 
 .tabla tbody tr:hover td {
-  background: #f8fafc;
+  background: var(--celestebg);
 }
 
 .tabla tfoot td {
   font-weight: 700;
-  background: #f8fafc;
+  background: var(--bg);
 }
 
 /* Primera columna fija: en tablas anchas (Cubicacion tiene 10 columnas) permite
@@ -213,20 +220,20 @@
   position: sticky;
   left: 0;
   z-index: 1;
-  box-shadow: 1px 0 0 #dfe4ea;
+  box-shadow: 1px 0 0 var(--border);
 }
 
 .tabla--fija-primera th:first-child {
-  background: #f1f4f8;
+  background: var(--navy);
   z-index: 2;
 }
 
 .tabla--fija-primera td:first-child {
-  background: #fff;
+  background: var(--card);
 }
 
 .tabla--fija-primera tbody tr:hover td:first-child {
-  background: #f8fafc;
+  background: var(--celestebg);
 }
 
 .tabla input[type='text'] {
@@ -235,28 +242,28 @@
   border: 1px solid transparent;
   background: transparent;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
 }
 
 .tabla input[type='text']:hover,
 .tabla input[type='text']:focus {
-  border-color: #cdd5dd;
-  background: #fff;
+  border-color: var(--border);
+  background: var(--card);
 }
 
 .tabla select {
-  border: 1px solid #cdd5dd;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   padding: 6px 8px;
   font-size: 13px;
-  background: #fff;
+  background: var(--card);
 }
 
 .input-num {
   width: 70px;
-  border: 1px solid #cdd5dd;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   padding: 6px 8px;
   font-size: 13px;
 }
@@ -289,26 +296,26 @@
 }
 
 .pill--ok {
-  background: #e2f6ec;
-  color: #1a7f4b;
+  background: var(--greenbg);
+  color: var(--green);
 }
 
 .pill--pendiente {
   /* Ambar, no rojo: significa "sin insumo todavia" (estado normal de una fila
      nueva/plantilla), no un error. El rojo se reserva para acciones destructivas. */
-  background: #fef3e2;
-  color: #a15c00;
+  background: var(--amberbg);
+  color: var(--amber);
 }
 
 .pill--vacia {
-  background: #eef1f4;
-  color: #6b7785;
+  background: var(--graybg);
+  color: var(--gray);
 }
 
 .btn-icon {
   border: none;
   background: transparent;
-  color: #b3261e;
+  color: var(--red);
   cursor: pointer;
   font-size: 14px;
   padding: 6px 8px;
@@ -321,32 +328,32 @@
 }
 
 .btn-icon:hover {
-  background: #fdecea;
+  background: var(--redbg);
 }
 
 .btn-secundario {
   margin-top: 10px;
-  border: 1px solid #10243e;
-  background: #fff;
-  color: #10243e;
+  border: 1px solid var(--navy);
+  background: var(--card);
+  color: var(--navy);
   font-weight: 600;
   font-size: 13px;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 
 .btn-secundario:hover {
-  background: #10243e;
+  background: var(--navy);
   color: #fff;
 }
 
 .btn-secundario:disabled {
   opacity: 0.6;
   cursor: progress;
-  background: #fff;
-  color: #10243e;
+  background: var(--card);
+  color: var(--navy);
 }
 
 .btn-secundario--sm {
@@ -379,17 +386,18 @@
 
 .tabla__vacio {
   text-align: center;
-  color: #5b6672;
+  color: var(--muted);
   font-style: italic;
   padding: 18px 10px;
 }
 
-/* Foco visible consistente con la identidad del producto, sin quitarle
-   accesibilidad al focus nativo del navegador. */
+/* Foco visible consistente con la identidad del producto (tokens.css: mismo azul de
+   foco en todas las herramientas WeLearn), sin quitarle accesibilidad al focus nativo
+   del navegador. */
 input:focus-visible,
 select:focus-visible,
 button:focus-visible {
-  outline: 2px solid #10243e;
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 
@@ -404,11 +412,12 @@ button:focus-visible {
 .seccion h3 {
   text-transform: uppercase;
   font-size: 12px;
-  letter-spacing: 0.04em;
-  color: #10243e;
-  background: #f1f4f8;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--navy);
+  background: var(--bg);
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .seccion__header {
@@ -433,7 +442,7 @@ button:focus-visible {
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  color: #45505c;
+  color: var(--muted);
   user-select: none;
 }
 
@@ -449,8 +458,8 @@ button:focus-visible {
   position: relative;
   width: 34px;
   height: 18px;
-  border-radius: 999px;
-  background: #cdd5dd;
+  border-radius: var(--radius-pill);
+  background: var(--border);
   flex-shrink: 0;
   transition: background-color 0.15s ease;
 }
@@ -468,16 +477,16 @@ button:focus-visible {
 }
 
 .etapa-toggle input:checked + .etapa-toggle__pista {
-  background: #10243e;
+  background: var(--navy);
 }
 
 .etapa-toggle input:checked + .etapa-toggle__pista::after {
   transform: translateX(16px);
-  background: #6fd3a8;
+  background: var(--celeste);
 }
 
 .etapa-toggle input:focus-visible + .etapa-toggle__pista {
-  outline: 2px solid #10243e;
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 
@@ -516,8 +525,8 @@ button:focus-visible {
   position: relative;
   width: 26px;
   height: 14px;
-  border-radius: 999px;
-  background: #cdd5dd;
+  border-radius: var(--radius-pill);
+  background: var(--border);
   flex-shrink: 0;
   transition: background-color 0.15s ease;
 }
@@ -535,16 +544,16 @@ button:focus-visible {
 }
 
 .fila-toggle input:checked + .fila-toggle__pista {
-  background: #10243e;
+  background: var(--navy);
 }
 
 .fila-toggle input:checked + .fila-toggle__pista::after {
   transform: translateX(12px);
-  background: #6fd3a8;
+  background: var(--celeste);
 }
 
 .fila-toggle input:focus-visible + .fila-toggle__pista {
-  outline: 2px solid #10243e;
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 
@@ -554,32 +563,32 @@ button:focus-visible {
   position: sticky;
   top: var(--header-h, 96px);
   z-index: 20;
-  background: #f4f6f8;
+  background: var(--bg);
   padding: 10px 0 2px;
   margin: -10px 0 -2px;
 }
 
 .tabs__btn {
-  border: 1px solid #cdd5dd;
-  background: #fff;
-  color: #45505c;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
   font-weight: 600;
   font-size: 13px;
   padding: 10px 18px;
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .tabs__btn:hover {
-  border-color: #10243e;
+  border-color: var(--navy);
 }
 
 .tabs__btn--activo,
 .tabs__btn--activo:hover {
-  background: #10243e;
+  background: var(--navy);
   color: #fff;
-  border-color: #10243e;
+  border-color: var(--navy);
 }
 
 .tarjetas {
@@ -590,9 +599,9 @@ button:focus-visible {
 }
 
 .tarjeta {
-  background: #f8fafc;
-  border: 1px solid #eef1f4;
-  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -600,29 +609,29 @@ button:focus-visible {
 }
 
 .tarjeta--destacada {
-  background: #10243e;
-  border-color: #10243e;
+  background: var(--navy);
+  border-color: var(--navy);
 }
 
 .tarjeta--destacada .tarjeta__label {
-  color: #a9c1d9;
+  color: #bcd7f0;
 }
 
 .tarjeta--destacada .tarjeta__valor {
-  color: #6fd3a8;
+  color: #fff;
 }
 
 .tarjeta__label {
-  font-size: 11px;
+  font-size: var(--fs-caption);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #6b7785;
+  color: var(--muted);
 }
 
 .tarjeta__valor {
-  font-size: 22px;
-  font-weight: 700;
-  color: #10243e;
+  font-size: var(--fs-kpi);
+  font-weight: 800;
+  color: var(--navy);
 }
 
 .lista-estado {
@@ -647,8 +656,8 @@ button:focus-visible {
   flex: 1;
   min-width: 220px;
   padding: 8px 12px;
-  border: 1px solid #cdd5dd;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   font-size: 14px;
 }
 
@@ -659,5 +668,15 @@ button:focus-visible {
   }
   .app__total {
     align-items: flex-start;
+  }
+
+  /* Sistema de diseno WeLearn: todo objetivo tactil sube a 44px en movil. Los
+     checkbox reales de los toggles quedan exentos (ocultos a proposito detras de
+     su .etapa-toggle__pista/.fila-toggle__pista, ver reglas mas arriba, con mayor
+     especificidad — su tamano visual/tactil ya lo cubre el label que los envuelve). */
+  button,
+  input,
+  select {
+    min-height: var(--touch);
   }
 }

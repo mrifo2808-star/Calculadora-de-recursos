@@ -1,6 +1,8 @@
+@import './tokens.css';
+
 :root {
   color-scheme: light;
-  font: 15px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  font: var(--fs-base) / var(--lh) var(--font);
 }
 
 * {
@@ -9,8 +11,8 @@
 
 body {
   margin: 0;
-  background: #f4f6f8;
-  color: #1c2530;
+  background: var(--bg);
+  color: var(--text);
 }
 
 h1, h2, h3 {

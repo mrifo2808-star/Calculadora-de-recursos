@@ -1,0 +1,81 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Sistema de diseño WeLearn — tokens (v1, 2026-08-23)
+   Fuente de verdad visual para TODAS las herramientas: Panel Integral,
+   Informe de Sprints, Tablero INACAP, Calculadora (webapp) y paneles HTML
+   locales. Guía de uso y equivalencias por herramienta: DISENO.md.
+
+   Los nombres conservan los ya usados por Panel Integral e Informe de
+   Sprints para que adoptar el sistema sea copiar este bloque, no renombrar.
+   Contrastes AA (4.5:1 texto normal) verificados en los pares indicados.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Paleta por rol ──────────────────────────────────────────────────── */
+  --bg:       #f4f7fb;  /* fondo de página */
+  --card:     #ffffff;  /* superficie (cards, tablas, modales) */
+  --navy:     #0f2a4a;  /* primario oscuro: headers, thead, títulos */
+  --navy2:    #16345c;  /* fin del degradado del header */
+  --blue:     #2b6cb0;  /* enlaces, foco, acciones secundarias (AA s/blanco) */
+  --celeste:  #4299e1;  /* acento de marca: botones primarios, barras (solo
+                           con texto blanco ≥14px bold o como relleno) */
+  --celestebg:#ebf8ff;  /* fondo suave de acento (hover, badges info) */
+  --text:     #1a202c;  /* texto principal (AA s/--bg y s/--card) */
+  --muted:    #5a6b82;  /* texto secundario — YA oscurecido para AA 4.5:1
+                           s/blanco y s/--bg (el original #718096 daba ~4.0) */
+  --border:   #cbd5e0;  /* bordes de superficie */
+
+  /* ── Semáforo (texto sobre su fondo suave: pares AA verificados) ─────── */
+  --green:    #2f855a;  --greenbg: #e6f6ee;  /* VERDE  */
+  --amber:    #8a5d00;  --amberbg: #fff6e5;  /* AMARILLO — usar SIEMPRE esta
+                           variante para texto; #b9810d/#e5a400 solo como
+                           relleno decorativo (barras, bordes, PPTX) */
+  --red:      #c53030;  --redbg:   #fdecec;  /* ROJO   */
+  --gray:     #5a6b82;  --graybg:  #eef1f5;  /* SIN DATOS (gris) */
+
+  /* Rellenos decorativos del semáforo (NO para texto; alinean con el PPTX
+     del agente PMO: 2E9E4F / E5A400 / D93025) */
+  --green-fill: #2e9e4f;
+  --amber-fill: #e5a400;
+  --red-fill:   #d93025;
+
+  /* ── Tipografía ──────────────────────────────────────────────────────── */
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+          Arial, sans-serif;
+  --fs-caption: 11px;   /* etiquetas KPI, notas (siempre con --muted AA) */
+  --fs-small:   12px;   /* metadatos, badges grandes, controles chicos */
+  --fs-table:   12.5px; /* celdas de tabla, botones secundarios */
+  --fs-body:    13.5px; /* inputs, botones, texto de trabajo */
+  --fs-base:    14px;   /* body por defecto */
+  --fs-title:   17px;   /* h1 del header */
+  --fs-kpi:     24px;   /* valor de KPI */
+  --lh: 1.45;
+
+  /* ── Forma y espacio ─────────────────────────────────────────────────── */
+  --radius:    8px;     /* cards, tablas, modales */
+  --radius-sm: 6px;     /* botones, inputs, sub-bloques */
+  --radius-pill: 999px; /* badges, pills, barras de progreso */
+  --shadow-hdr: 0 2px 8px rgba(15, 42, 74, .25);   /* header */
+  --shadow-modal: 0 10px 40px rgba(0, 0, 0, .3);   /* modales */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;  --sp-4: 16px;  --sp-5: 24px;
+  --wrap-max: 1240px;   /* ancho máximo del contenido */
+  --touch: 44px;        /* mínimo táctil móvil (WCAG 2.5.5) */
+}
+
+/* ── Foco visible (obligatorio en todas las herramientas) ────────────────── */
+a:focus-visible, button:focus-visible, select:focus-visible,
+input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Pie estándar (todas las páginas, discreto y AA) ─────────────────────── */
+/* Uso: <footer class="wl-footer" role="contentinfo">Desarrollado por Matías Rifo V.</footer> */
+.wl-footer {
+  margin: var(--sp-5) auto 0;
+  padding: var(--sp-3) var(--sp-4);
+  max-width: var(--wrap-max);
+  text-align: center;
+  font-size: var(--fs-small);
+  color: var(--muted);           /* 4.9:1 s/--bg y 5.2:1 s/blanco: AA */
+  border-top: 1px solid var(--border);
+}
