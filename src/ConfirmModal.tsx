@@ -8,13 +8,15 @@ interface OpcionesConfirm {
 }
 
 interface Pedido extends OpcionesConfirm {
-  mensaje: string;
+  mensaje: ReactNode;
   resolver: (valor: boolean) => void;
 }
 
 interface ConfirmContextValue {
-  /** Reemplazo de window.confirm(): resuelve true/false segun lo que elija el usuario. */
-  confirmar: (mensaje: string, opciones?: OpcionesConfirm) => Promise<boolean>;
+  /** Reemplazo de window.confirm(): resuelve true/false segun lo que elija el usuario.
+   * `mensaje` acepta ReactNode (no solo string) para poder mostrar un resumen con
+   * estructura — listas, negritas, etc. — como el preview de importar Excel. */
+  confirmar: (mensaje: ReactNode, opciones?: OpcionesConfirm) => Promise<boolean>;
 }
 
 const ConfirmContext = createContext<ConfirmContextValue | null>(null);
@@ -28,7 +30,7 @@ export function useConfirm(): ConfirmContextValue['confirmar'] {
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [pedido, setPedido] = useState<Pedido | null>(null);
 
-  const confirmar = (mensaje: string, opciones?: OpcionesConfirm): Promise<boolean> =>
+  const confirmar = (mensaje: ReactNode, opciones?: OpcionesConfirm): Promise<boolean> =>
     new Promise<boolean>((resolve) => {
       setPedido({ mensaje, ...opciones, resolver: resolve });
     });
@@ -64,7 +66,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id="confirm-modal__titulo">{pedido.titulo ?? 'Confirmar acción'}</h2>
-            <p className="confirm-modal__mensaje">{pedido.mensaje}</p>
+            {/* div, no p: el mensaje puede traer listas/parrafos (preview de importar
+                Excel) y un <ul>/<p> anidado dentro de <p> es HTML invalido. */}
+            <div className="confirm-modal__mensaje">{pedido.mensaje}</div>
             <div className="confirm-modal__acciones">
               <button type="button" className="confirm-modal__btn-cancelar" onClick={() => cerrar(false)} autoFocus>
                 {pedido.textoCancelar ?? 'Cancelar'}

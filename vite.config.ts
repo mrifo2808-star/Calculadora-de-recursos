@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -7,4 +8,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/Calculadora-de-recursos/',
+  test: {
+    // Solo logica pura (parseo/validacion) por ahora, sin DOM: environment 'node' basta
+    // y corre mas rapido que jsdom.
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+  },
 })

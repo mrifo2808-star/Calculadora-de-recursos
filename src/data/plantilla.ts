@@ -1,7 +1,7 @@
 import type { GestionRow, ParametrosCurso, ProduccionRow } from '../types';
 
 let seq = 0;
-const nextId = (prefix: string) => `${prefix}-${++seq}`;
+export const nextId = (prefix: string) => `${prefix}-${++seq}`;
 
 /** Reinicia el contador de IDs internos (rowId) a 0. Llamar antes de regenerar la
  * plantilla (gestionDefault/produccionDefault) al "Restaurar plantilla", para que los

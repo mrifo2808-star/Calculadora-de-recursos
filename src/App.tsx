@@ -157,6 +157,20 @@ function App() {
         onReset={resetPlantilla}
         onExport={exportarExcel}
         exportando={exportando}
+        gestionActual={estado.gestion}
+        produccionActual={estado.produccion}
+        onImportado={(datos) =>
+          setEstado((e) => ({
+            ...e,
+            parametros: datos.parametros,
+            gestion: datos.gestion,
+            produccion: datos.produccion,
+            // El Excel no guarda que etapas estaban desactivadas (no es una columna del
+            // export): todas las etapas presentes vuelven a nacer activas, igual que en
+            // "Restaurar plantilla".
+            etapasActivas: etapasActivasDefault(),
+          }))
+        }
       />
 
       <nav className="tabs" role="tablist" aria-label="Secciones de la calculadora">

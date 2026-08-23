@@ -4,6 +4,12 @@ import type { Frecuencia, GestionRow, ProduccionRow, RecursoCatalogo } from './t
 export const factorDe = (frecuencia: Frecuencia, nSemanas: number): number =>
   frecuencia === 'Por semana' ? nSemanas : 1;
 
+/** Etiqueta "Tipo — Nombre visible — Extension" que se escribe en la columna "Tipo /
+ * Recurso" del Excel exportado (ver exportCubicacion.ts) — unica fuente de verdad de
+ * este formato, tambien usada por importCubicacion.ts para resolver la fila de vuelta a
+ * un recursoId al reimportar. */
+export const etiquetaCompleta = (r: RecursoCatalogo): string => `${r.tipo} — ${r.nombreVisible} — ${r.extension}`;
+
 export type EstadoFila = 'OK' | 'PENDIENTE DE CATALOGAR' | 'VACIA';
 
 export interface ProduccionCalculada extends ProduccionRow {
@@ -42,7 +48,7 @@ export function calcularProduccion(
       hhSOP,
       total: hhDI + hhDG + hhSOP,
       estado: 'OK',
-      etiquetaRecurso: `${recurso.tipo} — ${recurso.nombreVisible} — ${recurso.extension}`,
+      etiquetaRecurso: etiquetaCompleta(recurso),
     };
   });
 }
