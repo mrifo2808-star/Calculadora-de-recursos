@@ -129,6 +129,33 @@ describe('procesarLibroCubicacion — filas de Gestion', () => {
     expect(resultado.gestion[0].cantidad).toBe(0);
     expect(resultado.avisos.some((a) => a.includes('Cantidad'))).toBe(true);
   });
+
+  it('lee un cargo "% Proyecto" con su porcentaje', () => {
+    const buffer = libroDePrueba({
+      gestion: [{ Cargo: 'Gestion JP', Tipo: '% Proyecto', Cantidad: 1, Frecuencia: 'Fijo', 'HH unitarias': 0, '% proyecto': 30, Activa: 'Sí' }],
+    });
+    const resultado = procesarLibroCubicacion(buffer, CATALOGO);
+    expect(resultado.gestion[0].tipo).toBe('porcentaje');
+    expect(resultado.gestion[0].porcentaje).toBe(30);
+  });
+
+  it('un archivo sin las columnas Tipo/% proyecto (formato anterior a esta funcionalidad) importa todo como Fijo', () => {
+    // No usa libroDePrueba: arma la hoja SIN Tipo ni "% proyecto", tal como exportaba la
+    // app antes de que existiera el modelo de cargos por porcentaje.
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet([{ Proyecto: 'X', Cliente: 'Y', 'N° cursos': 1, 'N° semanas': 4, Modalidad: 'Full' }]), 'Parametros');
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet([{ Cargo: 'Gestion JP', Cantidad: 1, Frecuencia: 'Por semana', 'HH unitarias': 0.25, Activa: 'Sí' }]), 'Gestion');
+    XLSX.utils.book_append_sheet(
+      libro,
+      XLSX.utils.json_to_sheet([{ Sección: SECCIONES[0], Tarea: 'x', 'Tipo / Recurso': '', Cantidad: 1, Frecuencia: 'Por curso' }]),
+      'Cubicacion',
+    );
+    const buffer = XLSX.write(libro, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+    const resultado = procesarLibroCubicacion(buffer, CATALOGO);
+    expect(resultado.gestion[0].tipo).toBe('fijo');
+    expect(resultado.gestion[0].porcentaje).toBe(0);
+    expect(resultado.avisos).toHaveLength(0);
+  });
 });
 
 describe('procesarLibroCubicacion — filas de Cubicacion', () => {
@@ -203,7 +230,16 @@ describe('compararProduccion / compararGestion', () => {
 
   it('gestion: compara por Cargo y detecta cambios en activa/hhUnitaria', () => {
     const g = (over: Partial<GestionRow>): GestionRow => ({
-      rowId: 'g', cargo: 'JP', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.25, removable: true, activa: true, ...over,
+      rowId: 'g',
+      cargo: 'JP',
+      tipo: 'fijo',
+      cantidad: 1,
+      frecuencia: 'Por semana',
+      hhUnitaria: 0.25,
+      porcentaje: 0,
+      removable: true,
+      activa: true,
+      ...over,
     });
     const actuales = [g({})];
     const sinCambios = compararGestion(actuales, [g({ rowId: 'otro' })]);
@@ -211,5 +247,8 @@ describe('compararProduccion / compararGestion', () => {
 
     const cambiada = compararGestion(actuales, [g({ rowId: 'otro', activa: false })]);
     expect(cambiada).toEqual({ nuevas: 0, cambiadas: 1, sinCambios: 0, eliminadas: 0 });
+
+    const cambiaTipo = compararGestion(actuales, [g({ rowId: 'otro', tipo: 'porcentaje', porcentaje: 30 })]);
+    expect(cambiaTipo).toEqual({ nuevas: 0, cambiadas: 1, sinCambios: 0, eliminadas: 0 });
   });
 });

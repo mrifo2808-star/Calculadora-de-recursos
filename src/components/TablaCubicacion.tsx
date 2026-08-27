@@ -14,6 +14,8 @@ interface Props {
   onChange: (rows: ProduccionRow[]) => void;
   onAdd: (seccion: string) => void;
   gestionRows: GestionRow[];
+  /** Ver TablaGestion: base de los cargos de Gestion tipo 'porcentaje'. */
+  baseGestionHH: number;
   onChangeGestion: (rows: GestionRow[]) => void;
   onAddGestion: () => void;
 }
@@ -38,6 +40,7 @@ export function TablaCubicacion({
   onChange,
   onAdd,
   gestionRows,
+  baseGestionHH,
   onChangeGestion,
   onAddGestion,
 }: Props) {
@@ -88,7 +91,13 @@ export function TablaCubicacion({
           return (
             <div key={etapa} className="seccion">
               {cabecera}
-              <TablaGestion rows={gestionRows} nSemanas={nSemanas} onChange={onChangeGestion} onAdd={onAddGestion} />
+              <TablaGestion
+                rows={gestionRows}
+                nSemanas={nSemanas}
+                baseGestionHH={baseGestionHH}
+                onChange={onChangeGestion}
+                onAdd={onAddGestion}
+              />
             </div>
           );
         }

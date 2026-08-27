@@ -18,14 +18,47 @@ export const PARAMETROS_DEFAULT: ParametrosCurso = {
   modalidad: 'Full',
 };
 
+/** Cargo cuyas HH se calculan como cantidad x factor(frecuencia) x hhUnitaria — el
+ * modelo original de Gestion. */
+const cargoFijo = (cargo: string, cantidad: number, frecuencia: GestionRow['frecuencia'], hhUnitaria: number): GestionRow => ({
+  rowId: nextId('g'),
+  cargo,
+  tipo: 'fijo',
+  cantidad,
+  frecuencia,
+  hhUnitaria,
+  porcentaje: 0,
+  removable: false,
+  activa: true,
+});
+
+/** Cargo cuyas HH son un porcentaje fijo del total de HH de produccion del proyecto (ver
+ * calcularGestion/totalRecursosCurso en calc.ts) — cantidad/frecuencia/hhUnitaria no
+ * aplican, quedan en su valor neutro. */
+const cargoPorcentaje = (cargo: string, porcentaje: number): GestionRow => ({
+  rowId: nextId('g'),
+  cargo,
+  tipo: 'porcentaje',
+  cantidad: 1,
+  frecuencia: 'Fijo',
+  hhUnitaria: 0,
+  porcentaje,
+  removable: false,
+  activa: true,
+});
+
+/** Porcentajes de gestion sobre el total de HH de produccion del proyecto, definidos por
+ * Matias el 27-08-2026: JP 30%, Senior (DI/DG/Sop) 20/5/5%, Jefes de Area (TL, uno por
+ * DI/DG/Sop) 5% cada uno. Reemplaza el cargo "GE" (gestor), que se elimina del proyecto. */
 export const gestionDefault = (): GestionRow[] => [
-  { rowId: nextId('g'), cargo: 'Gestion JP', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.25, removable: false, activa: true },
-  { rowId: nextId('g'), cargo: 'Gestion GE', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.25, removable: false, activa: true },
-  { rowId: nextId('g'), cargo: 'Gestion DI TL', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.1, removable: false, activa: true },
-  { rowId: nextId('g'), cargo: 'Gestion DG TL', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.1, removable: false, activa: true },
-  { rowId: nextId('g'), cargo: 'Gestion QA TL', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 0.1, removable: false, activa: true },
-  { rowId: nextId('g'), cargo: 'Gestion DI Senior', cantidad: 1, frecuencia: 'Por semana', hhUnitaria: 2, removable: false, activa: true },
-  { rowId: nextId('g'), cargo: 'Bases Plantillas DG', cantidad: 1, frecuencia: 'Fijo', hhUnitaria: 12, removable: false, activa: true },
+  cargoPorcentaje('Gestion JP', 30),
+  cargoPorcentaje('Gestion DI Senior', 20),
+  cargoPorcentaje('Gestion DG Senior', 5),
+  cargoPorcentaje('Gestion Sop Senior', 5),
+  cargoPorcentaje('Gestion DI TL', 5),
+  cargoPorcentaje('Gestion DG TL', 5),
+  cargoPorcentaje('Gestion Sop TL', 5),
+  cargoFijo('Bases Plantillas DG', 1, 'Fijo', 12),
 ];
 
 /** Secciones fijas de Cubicacion, en el mismo orden que el Excel RC7. */
@@ -102,9 +135,11 @@ export const nuevaFilaProduccion = (seccion: string): ProduccionRow =>
 export const nuevaFilaGestion = (): GestionRow => ({
   rowId: nextId('g'),
   cargo: '',
+  tipo: 'fijo',
   cantidad: 1,
   frecuencia: 'Por semana',
   hhUnitaria: 0,
+  porcentaje: 0,
   removable: true,
   activa: true,
 });

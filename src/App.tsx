@@ -16,7 +16,7 @@ import {
   resetContadorId,
   SECCIONES,
 } from './data/plantilla';
-import { calcularGestion, calcularProduccion, calcularResumen } from './calc';
+import { calcularGestion, calcularProduccion, calcularResumen, totalRecursosCurso } from './calc';
 import type { GestionRow, ParametrosCurso, ProduccionRow } from './types';
 import { useCatalog } from './CatalogContext';
 import { useAccess } from './AccessGate';
@@ -46,7 +46,14 @@ function estadoInicial(): Estado {
       const guardado = JSON.parse(raw) as Partial<Estado>;
       return {
         parametros: guardado.parametros ?? PARAMETROS_DEFAULT,
-        gestion: guardado.gestion ?? gestionDefault(),
+        // tipo/porcentaje: filas guardadas antes de esta funcionalidad no los tienen —
+        // se completan como 'fijo'/0, que es exactamente su comportamiento de siempre
+        // (cantidad x factor x hhUnitaria).
+        gestion: (guardado.gestion ?? gestionDefault()).map((g) => ({
+          ...g,
+          tipo: g.tipo ?? 'fijo',
+          porcentaje: g.porcentaje ?? 0,
+        })),
         produccion: guardado.produccion ?? produccionDefault(),
         // Merge con el default: estados guardados antes de esta funcionalidad no tienen
         // etapasActivas, y una etapa nueva que se agregue a futuro debe nacer activa.
@@ -92,7 +99,7 @@ function App() {
     return () => observer.disconnect();
   }, []);
 
-  const { produccionCalc, gestionCalc, resumen } = useMemo(() => {
+  const { produccionCalc, gestionCalc, resumen, baseGestionHH } = useMemo(() => {
     // Una etapa desactivada excluye TODAS sus filas del calculo y de la exportacion. En
     // Gestion ademas cada fila individual puede desactivarse (se mantiene visible en la
     // exportacion, para dejar registro, pero se excluye de los totales de Resumen). En
@@ -102,12 +109,16 @@ function App() {
     const seccionesActivas = SECCIONES.filter((s) => etapaActiva(estado.etapasActivas, s));
 
     const produccionCalc = calcularProduccion(produccionEnEtapasActivas, estado.parametros.nSemanas, catalogo);
-    const gestionCalc = calcularGestion(gestionEnEtapaActiva, estado.parametros.nSemanas);
+    // Base de los cargos de Gestion tipo 'porcentaje': el total de HH de produccion
+    // (etapas activas, por curso) — se calcula ANTES de Gestion para que un cargo
+    // porcentual nunca dependa de si mismo ni de otro cargo de Gestion.
+    const baseGestionHH = totalRecursosCurso(produccionCalc);
+    const gestionCalc = calcularGestion(gestionEnEtapaActiva, estado.parametros.nSemanas, baseGestionHH);
 
     const gestionParaTotales = gestionCalc.filter((r) => r.activa !== false);
     const resumen = calcularResumen(produccionCalc, gestionParaTotales, estado.parametros.nCursos, seccionesActivas);
 
-    return { produccionCalc, gestionCalc, resumen };
+    return { produccionCalc, gestionCalc, resumen, baseGestionHH };
   }, [estado, catalogo]);
 
   const resetPlantilla = async () => {
@@ -229,6 +240,7 @@ function App() {
           onChange={(produccion) => setEstado((e) => ({ ...e, produccion }))}
           onAdd={(seccion) => setEstado((e) => ({ ...e, produccion: [...e.produccion, nuevaFilaProduccion(seccion)] }))}
           gestionRows={estado.gestion}
+          baseGestionHH={baseGestionHH}
           onChangeGestion={(gestion) => setEstado((e) => ({ ...e, gestion }))}
           onAddGestion={() => setEstado((e) => ({ ...e, gestion: [...e.gestion, nuevaFilaGestion()] }))}
         />

@@ -20,11 +20,17 @@ export function PanelInstrucciones() {
         desactivarse.
       </p>
       <p className="panel__texto">
-        La lista de secciones incluye, al final, <strong>«Gestión del proyecto»</strong> (cargos JP, GE, TLs, etc.):
-        es una sección más de Cubicación, no un bloque aparte. A diferencia de los recursos, estos cargos suelen
-        reutilizarse entre proyectos, así que cada fila de Gestión tiene su propio interruptor «Activa» (junto a
-        «✕») en vez de un botón de eliminar: desactivarla la deja visible pero atenuada y sin sumar horas, sin perder
-        los datos.
+        La lista de secciones incluye, al final, <strong>«Gestión del proyecto»</strong> (cargos JP, Senior, Jefes de
+        Área, etc.): es una sección más de Cubicación, no un bloque aparte. A diferencia de los recursos, estos
+        cargos suelen reutilizarse entre proyectos, así que cada fila de Gestión tiene su propio interruptor «Activa»
+        (junto a «✕») en vez de un botón de eliminar: desactivarla la deja visible pero atenuada y sin sumar horas,
+        sin perder los datos.
+      </p>
+      <p className="panel__texto">
+        Cada cargo de Gestión es de <strong>Tipo</strong> «Fijo» (Cantidad × Frecuencia × HH unitarias, igual que un
+        recurso) o «<strong>% Proyecto</strong>» (un porcentaje fijo del total de HH de producción del proyecto —
+        recursos de Cubicación en etapas activas, por curso). Los cargos «% Proyecto» se recalculan solos cada vez
+        que cambia ese total; no tienen Cantidad/Frecuencia/HH unitarias propias (se muestran con «—»).
       </p>
       <p className="panel__texto">
         Además, cada sección (incluida «Gestión del proyecto») tiene un interruptor «Etapa activa» / «Etapa

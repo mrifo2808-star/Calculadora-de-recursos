@@ -31,17 +31,19 @@ export function descargarCubicacionExcel(datos: DatosExport): void {
   const hojaGestion = XLSX.utils.json_to_sheet(
     gestion.map((r) => ({
       Cargo: r.cargo,
+      Tipo: r.tipo === 'porcentaje' ? '% Proyecto' : 'Fijo',
       Cantidad: r.cantidad,
       Frecuencia: r.frecuencia,
       Factor: r.factor,
       'HH unitarias': r.hhUnitaria,
+      '% proyecto': r.porcentaje,
       'Total HH': r.total,
       // Filas desactivadas se exportan igual (para dejar registro) pero marcadas: no
       // suman en los totales de la hoja Resumen.
       Activa: r.activa === false ? 'No (excluida del total)' : 'Sí',
     })),
   );
-  hojaGestion['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 20 }];
+  hojaGestion['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 20 }];
 
   const hojaCubicacion = XLSX.utils.json_to_sheet(
     produccion.map((r) => ({

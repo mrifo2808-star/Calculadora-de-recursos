@@ -3,11 +3,13 @@
  * `standalone` decide si el componente es el propio landmark <footer role="contentinfo">
  * (paginas sin otro footer, ej. AccessGate) o solo la linea de credito para anidar dentro
  * de un <footer> que ya existe (App: evita dos landmarks "contentinfo" en la misma pagina). */
+import { BUILD_ID } from '../buildInfo';
+
 interface Props {
   standalone?: boolean;
 }
 
-const TEXTO = 'Calculadora de Recursos WeLearn · Desarrollado por Matías Rifo V.';
+const TEXTO = `Calculadora de Recursos WeLearn · Desarrollado por Matías Rifo V. · build ${BUILD_ID}`;
 
 export function FooterWeLearn({ standalone = true }: Props) {
   if (standalone) {

@@ -58,8 +58,16 @@ export interface GestionCalculada extends GestionRow {
   total: number;
 }
 
-export function calcularGestion(rows: GestionRow[], nSemanas: number): GestionCalculada[] {
+/** `baseHH` es la base sobre la que se calculan los cargos de tipo 'porcentaje': el total
+ * de HH de produccion del proyecto (recursos de Cubicacion en etapas activas, por curso —
+ * ver `totalRecursosCurso`). Un cargo 'fijo' ignora `baseHH` (usa cantidad/factor/
+ * hhUnitaria, como siempre); uno 'porcentaje' ignora cantidad/frecuencia/hhUnitaria. */
+export function calcularGestion(rows: GestionRow[], nSemanas: number, baseHH: number): GestionCalculada[] {
   return rows.map((r) => {
+    if (r.tipo === 'porcentaje') {
+      const porcentaje = Number.isFinite(r.porcentaje) ? Math.max(0, r.porcentaje) : 0;
+      return { ...r, factor: 1, total: baseHH * (porcentaje / 100) };
+    }
     const factor = factorDe(r.frecuencia, nSemanas);
     const cantidad = Number.isFinite(r.cantidad) ? r.cantidad : 0;
     return { ...r, factor, total: cantidad * factor * (r.hhUnitaria || 0) };
@@ -86,6 +94,18 @@ export interface Resumen {
   cubicacionCompleta: boolean;
 }
 
+/** Total de HH de produccion (DI+DG+SOP) del proyecto, por curso — la "base" sobre la
+ * que se calculan los cargos de Gestion de tipo 'porcentaje' (ver calcularGestion) y
+ * tambien el campo `totalRecursosCurso` de este mismo Resumen: una sola formula para
+ * ambos usos, para que el preview en vivo de la tabla de Gestion y el Resumen final
+ * jamas puedan mostrar numeros distintos. */
+export function totalRecursosCurso(produccion: ProduccionCalculada[]): number {
+  const hhDI = round2(sum(produccion.map((r) => r.hhDI)));
+  const hhDG = round2(sum(produccion.map((r) => r.hhDG)));
+  const hhSOP = round2(sum(produccion.map((r) => r.hhSOP)));
+  return round2(hhDI + hhDG + hhSOP);
+}
+
 export function calcularResumen(
   produccion: ProduccionCalculada[],
   gestion: GestionCalculada[],
@@ -95,9 +115,9 @@ export function calcularResumen(
   const hhDICurso = round2(sum(produccion.map((r) => r.hhDI)));
   const hhDGCurso = round2(sum(produccion.map((r) => r.hhDG)));
   const hhSOPCurso = round2(sum(produccion.map((r) => r.hhSOP)));
-  const totalRecursosCurso = round2(hhDICurso + hhDGCurso + hhSOPCurso);
+  const totalRecursosCursoValor = totalRecursosCurso(produccion);
   const hhGestionCurso = round2(sum(gestion.map((r) => r.total)));
-  const totalGeneralCurso = round2(totalRecursosCurso + hhGestionCurso);
+  const totalGeneralCurso = round2(totalRecursosCursoValor + hhGestionCurso);
 
   const subtotalesPorSeccion = secciones.map((seccion) => ({
     seccion,
@@ -112,13 +132,13 @@ export function calcularResumen(
     hhDICurso,
     hhDGCurso,
     hhSOPCurso,
-    totalRecursosCurso,
+    totalRecursosCurso: totalRecursosCursoValor,
     hhGestionCurso,
     totalGeneralCurso,
     hhDIProyecto: round2(hhDICurso * nCursos),
     hhDGProyecto: round2(hhDGCurso * nCursos),
     hhSOPProyecto: round2(hhSOPCurso * nCursos),
-    totalRecursosProyecto: round2(totalRecursosCurso * nCursos),
+    totalRecursosProyecto: round2(totalRecursosCursoValor * nCursos),
     hhGestionProyecto: round2(hhGestionCurso * nCursos),
     totalGeneralProyecto: round2(totalGeneralCurso * nCursos),
     subtotalesPorSeccion,

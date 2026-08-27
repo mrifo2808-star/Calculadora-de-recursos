@@ -30,8 +30,16 @@ catalogar" y no suma horas. Se excluyeron del catálogo (respecto al RC7 origina
 recursos que no tenían ningún dato de tiempo DI/DG/SOP registrado ("Grafico plano" y
 "Animacion T3"): sin ese dato no aportan al cálculo y solo generaban filas en 0.
 
-Los cargos de "Gestión del proyecto" (JP, GE, TLs, etc.) usan la misma fórmula de Factor,
-pero no consumen el catálogo de recursos — su HH unitaria es editable directamente.
+Los cargos de "Gestión del proyecto" no consumen el catálogo de recursos y son de dos
+tipos (columna "Tipo" en la tabla de Gestión):
+
+- **Fijo**: misma fórmula de Factor que producción (Cantidad × Factor × HH unitaria),
+  con HH unitaria editable directamente. Ej. "Bases Plantillas DG".
+- **% Proyecto**: un porcentaje fijo del total de HH de producción del proyecto
+  (recursos de Cubicación en etapas activas, por curso — ver `totalRecursosCurso` en
+  `calc.ts`); no usa Cantidad/Frecuencia/HH unitaria y se recalcula solo cuando ese
+  total cambia. Los 7 cargos por defecto (JP 30%, DI/DG/Sop Senior 20/5/5%, DI/DG/Sop
+  TL 5% cada uno — definidos por Matías el 27-08-2026) son de este tipo.
 
 ## Desarrollo local
 
@@ -162,6 +170,10 @@ descarga cuando alguien abre la pestaña Catálogo y usa descargar/cargar.
   tiene 10 columnas y no siempre entra en una pantalla).
 - El pill ámbar de "Pendiente de catalogar" es intencional (no rojo): es el estado
   normal de una fila de plantilla sin insumo todavía, no un error.
+- El pie de la app muestra un **build id** (`src/buildInfo.ts`, constante `BUILD_ID`)
+  con la fecha del último cambio de producto notable — bump manual, sin versionado
+  semver ni CI que lo genere; sirve para confirmar a simple vista que el sitio publicado
+  corresponde al build esperado.
 
 ## Estructura
 

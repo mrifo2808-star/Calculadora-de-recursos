@@ -1,7 +1,15 @@
 import * as XLSX from 'xlsx';
 import { etiquetaCompleta } from './calc';
 import { nextId, SECCIONES } from './data/plantilla';
-import { FRECUENCIAS, type Frecuencia, type GestionRow, type ParametrosCurso, type ProduccionRow, type RecursoCatalogo } from './types';
+import {
+  FRECUENCIAS,
+  type Frecuencia,
+  type GestionRow,
+  type ParametrosCurso,
+  type ProduccionRow,
+  type RecursoCatalogo,
+  type TipoCargoGestion,
+} from './types';
 
 /**
  * Importación inversa del .xlsx que genera "⬇ Exportar a Excel" (exportCubicacion.ts):
@@ -14,6 +22,9 @@ import { FRECUENCIAS, type Frecuencia, type GestionRow, type ParametrosCurso, ty
 const HOJAS_REQUERIDAS = ['Parametros', 'Gestion', 'Cubicacion'] as const;
 
 const COLUMNAS_PARAMETROS = ['Proyecto', 'Cliente', 'N° cursos', 'N° semanas', 'Modalidad'] as const;
+// "Tipo" y "% proyecto" NO son requeridas: un .xlsx exportado antes de que existiera el
+// modelo de cargos por porcentaje no las trae, y debe seguir importando igual (todo cargo
+// se trata como 'fijo', ver comoTipoCargo).
 const COLUMNAS_GESTION = ['Cargo', 'Cantidad', 'Frecuencia', 'HH unitarias', 'Activa'] as const;
 const COLUMNAS_CUBICACION = ['Sección', 'Tarea', 'Tipo / Recurso', 'Cantidad', 'Frecuencia'] as const;
 
@@ -90,6 +101,14 @@ function comoActiva(valor: unknown): boolean {
   return !(texto.startsWith('no') || texto === 'false' || texto === '0');
 }
 
+/** Columna vacía/ausente (archivo de antes de esta funcionalidad) -> 'fijo', que es
+ * exactamente el comportamiento que ya tenía toda fila de Gestion. Cualquier texto que
+ * mencione "%"/"porcentaje" -> 'porcentaje'; cualquier otra cosa ("Fijo", etc.) -> 'fijo'. */
+function comoTipoCargo(valor: unknown): TipoCargoGestion {
+  const texto = comoTexto(valor).toLowerCase();
+  return texto.includes('%') || texto.includes('porcentaje') ? 'porcentaje' : 'fijo';
+}
+
 function encabezadosHoja(hoja: XLSX.WorkSheet): Set<string> {
   const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1 });
   return new Set((filas[0] ?? []).map((c) => comoTexto(c)));
@@ -162,9 +181,11 @@ export function procesarLibroCubicacion(buffer: ArrayBuffer, catalogo: RecursoCa
     gestion.push({
       rowId: nextId('g'),
       cargo,
+      tipo: comoTipoCargo(f['Tipo']),
       cantidad: Math.max(0, comoNumero(f['Cantidad'], 0, avisos, contexto, 'Cantidad')),
       frecuencia: comoFrecuencia(f['Frecuencia'], avisos, contexto),
       hhUnitaria: Math.max(0, comoNumero(f['HH unitarias'], 0, avisos, contexto, 'HH unitarias')),
+      porcentaje: Math.max(0, comoNumero(f['% proyecto'], 0, avisos, contexto, '% proyecto')),
       removable: true,
       activa: comoActiva(f['Activa']),
     });
@@ -255,7 +276,7 @@ function compararFilas<T>(actuales: T[], importadas: T[], clave: (r: T) => strin
 // Cargo). Varias filas en blanco o con el mismo nombre dentro de la misma sección
 // colapsan a la misma clave — el conteo queda aproximado en ese caso, no exacto (no
 // afecta la importación en sí, solo el resumen previo).
-const claveProduccion = (r: ProduccionRow): string => `${r.seccion} ${r.tarea.trim().toLowerCase()}`;
+const claveProduccion = (r: ProduccionRow): string => `${r.seccion} ${r.tarea.trim().toLowerCase()}`;
 const igualesProduccion = (a: ProduccionRow, b: ProduccionRow): boolean =>
   a.recursoId === b.recursoId && redondear(a.cantidad) === redondear(b.cantidad) && a.frecuencia === b.frecuencia;
 
@@ -264,9 +285,11 @@ export const compararProduccion = (actuales: ProduccionRow[], importadas: Produc
 
 const claveGestion = (r: GestionRow): string => r.cargo.trim().toLowerCase();
 const igualesGestion = (a: GestionRow, b: GestionRow): boolean =>
+  a.tipo === b.tipo &&
   redondear(a.cantidad) === redondear(b.cantidad) &&
   a.frecuencia === b.frecuencia &&
   redondear(a.hhUnitaria) === redondear(b.hhUnitaria) &&
+  redondear(a.porcentaje) === redondear(b.porcentaje) &&
   a.activa === b.activa;
 
 export const compararGestion = (actuales: GestionRow[], importadas: GestionRow[]): ConteoDiff =>
