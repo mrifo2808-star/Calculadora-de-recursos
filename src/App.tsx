@@ -14,6 +14,7 @@ import {
   nuevaFilaGestion,
   nuevaFilaProduccion,
   produccionDefault,
+  reconciliarGestionBase,
   resetContadorId,
   SECCIONES,
 } from './data/plantilla';
@@ -32,23 +33,36 @@ const STORAGE_KEY = 'welearn-calculadora-v1';
  * inestables. */
 const etapaActiva = (etapasActivas: Record<string, boolean>, etapa: string): boolean => etapasActivas[etapa] !== false;
 
-/** Forma que podia tener una fila de Gestion guardada en localStorage antes de fijar el
- * modelo a "siempre porcentaje" (27-08-2026): con 'tipo' fijo/porcentaje (version
- * intermedia, nunca llego a produccion) o directamente sin 'tipo' ni 'porcentaje'
- * (version original, de horas fijas). Solo se usa para migrar lo que haya guardado. */
-type GestionRowGuardada = Partial<GestionRow> & { tipo?: 'fijo' | 'porcentaje' };
+/** Forma que podia tener una fila de Gestion guardada en localStorage en versiones
+ * anteriores del modelo (27-08-2026, mismo dia, tres formas distintas): la original de
+ * horas fijas (sin 'tipo' ni 'porcentaje', con cantidad/frecuencia/hhUnitaria reales),
+ * la version "solo porcentaje" (sin 'tipo' NI cantidad/frecuencia/hhUnitaria, solo
+ * 'porcentaje'), o ya la forma actual completa. Solo se usa para migrar lo que haya
+ * guardado — la correccion real de los 7 cargos base la hace `reconciliarGestionBase`
+ * despues, sin importar que trajera cada fila. */
+type GestionRowGuardada = Partial<GestionRow>;
 
-/** Una fila que ya era 'porcentaje' conserva su valor. Cualquier otra (sin 'tipo', o
- * 'tipo' === 'fijo': ambas eran horas fijas) no tiene un % que migrar automaticamente —
- * nace en 0% en vez de perderse, hasta que alguien le asigne uno o la elimine. */
-const migrarGestion = (gestion: GestionRowGuardada[] | undefined): GestionRow[] =>
-  (gestion ?? (gestionDefault() as GestionRowGuardada[])).map((g) => ({
-    rowId: g.rowId ?? nextId('g'),
-    cargo: g.cargo ?? '',
-    porcentaje: g.tipo === 'fijo' ? 0 : (g.porcentaje ?? 0),
-    removable: g.removable ?? true,
-    activa: g.activa !== false,
-  }));
+const migrarGestion = (gestion: GestionRowGuardada[] | undefined): GestionRow[] => {
+  const mapeadas: GestionRow[] = (gestion ?? []).map((g) => {
+    // Sin 'tipo': si trae cantidad (forma original, de horas fijas) es 'fijo'; si no
+    // trae nada de eso (forma "solo porcentaje") es 'porcentaje' y su valor SI importa.
+    const tipo = g.tipo ?? (g.cantidad !== undefined ? 'fijo' : 'porcentaje');
+    return {
+      rowId: g.rowId ?? nextId('g'),
+      cargo: g.cargo ?? '',
+      tipo,
+      cantidad: g.cantidad ?? 1,
+      frecuencia: g.frecuencia ?? 'Por semana',
+      hhUnitaria: g.hhUnitaria ?? 0,
+      porcentaje: g.porcentaje ?? 0,
+      removable: g.removable ?? true,
+      activa: g.activa !== false,
+    };
+  });
+  // Fuerza los 7 cargos base a su tipo/porcentaje del codigo sin importar que traia la
+  // fila migrada arriba (si un cargo base venia con otro valor, aca queda corregido).
+  return reconciliarGestionBase(mapeadas);
+};
 
 interface Estado {
   parametros: ParametrosCurso;
@@ -125,7 +139,7 @@ function App() {
     // (etapas activas, por curso) — se calcula ANTES de Gestion para que un cargo
     // porcentual nunca dependa de si mismo ni de otro cargo de Gestion.
     const baseGestionHH = totalRecursosCurso(produccionCalc);
-    const gestionCalc = calcularGestion(gestionEnEtapaActiva, baseGestionHH);
+    const gestionCalc = calcularGestion(gestionEnEtapaActiva, estado.parametros.nSemanas, baseGestionHH);
 
     const gestionParaTotales = gestionCalc.filter((r) => r.activa !== false);
     const resumen = calcularResumen(produccionCalc, gestionParaTotales, estado.parametros.nCursos, seccionesActivas);

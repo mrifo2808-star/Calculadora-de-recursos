@@ -54,17 +54,23 @@ export function calcularProduccion(
 }
 
 export interface GestionCalculada extends GestionRow {
+  factor: number;
   total: number;
 }
 
 /** `baseHH` es el total de HH de produccion del proyecto (recursos de Cubicacion en
- * etapas activas, por curso — ver `totalRecursosCurso`), la unica base de calculo de
- * Gestion: cada cargo es cantidad.porcentaje % de `baseHH`. No hay modalidad de horas
- * fijas — un cargo de Gestion siempre es un porcentaje del total de produccion. */
-export function calcularGestion(rows: GestionRow[], baseHH: number): GestionCalculada[] {
+ * etapas activas, por curso — ver `totalRecursosCurso`), la base de los cargos tipo
+ * 'porcentaje'. Un cargo 'fijo' ignora `baseHH` (usa cantidad/factor/hhUnitaria, igual
+ * que un recurso de Cubicacion); uno 'porcentaje' ignora cantidad/frecuencia/hhUnitaria. */
+export function calcularGestion(rows: GestionRow[], nSemanas: number, baseHH: number): GestionCalculada[] {
   return rows.map((r) => {
+    if (r.tipo === 'fijo') {
+      const factor = factorDe(r.frecuencia, nSemanas);
+      const cantidad = Number.isFinite(r.cantidad) ? r.cantidad : 0;
+      return { ...r, factor, total: cantidad * factor * (r.hhUnitaria || 0) };
+    }
     const porcentaje = Number.isFinite(r.porcentaje) ? Math.max(0, r.porcentaje) : 0;
-    return { ...r, total: baseHH * (porcentaje / 100) };
+    return { ...r, factor: 1, total: baseHH * (porcentaje / 100) };
   });
 }
 

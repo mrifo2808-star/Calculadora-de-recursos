@@ -3,14 +3,73 @@
 Rama: `claude/gestion-porcentajes-20260827`. **Push autorizado por este encargo — ya
 está en origin.** Merge y deploy quedan para Matías (pasos al final).
 
-**Nota de estado**: Matías ya mergeó y desplegó la primera entrega de este documento
-(commits `ae2003d`/`960eb60`, con el modelo de dos tipos Fijo/% Proyecto descrito más
-abajo) — confirmado porque `main`/`origin/main` quedaron en `960eb60`. El mismo día pidió
-un ajuste (ver sección siguiente) que esta rama ya trae encima, listo para un segundo
-merge. El resto de este documento describe la entrega ORIGINAL tal cual se validó
-entonces; leer primero el ajuste, que es lo vigente.
+**Nota de estado**: Matías ya mergeó y desplegó la entrega original (`ae2003d`/`960eb60`,
+modelo Fijo/% Proyecto) y el primer ajuste (`5c4403d`, Gestión exclusivamente
+porcentual) — confirmado porque `main`/`origin/main` llegaron a estar en `5c4403d` antes
+de este segundo ajuste. Este documento queda en orden cronológico **inverso** (lo más
+nuevo primero): leer el segundo ajuste primero, que es lo vigente.
 
-## Ajuste del mismo día (27-08-2026): Gestión queda solo en modo porcentaje
+## Segundo ajuste (27-08-2026, mismo día): los 7 cargos base quedan bloqueados a edición
+
+Matías, viendo la tabla de Gestión ya con los 7 cargos porcentuales del primer ajuste:
+*"corrige la calculadora para que vengan estos cargos con esos tiempos precargados y no
+editables desde el usuario, solo los puedo editar yo desde el código... deja poder
+agregar un nuevo cargo con porcentaje de gestión u horas... pero los cargos esos que
+están en la imagen son los de base y van siempre en los proyectos, no hagas editable esa
+parte."*
+
+Esto **revierte parte del primer ajuste**: vuelve a existir la modalidad "Fijo" (Cantidad
+× Frecuencia × HH unitaria), pero solo para cargos agregados a mano — los 7 base quedan
+bloqueados, no para elegir entre Fijo/% Proyecto sino fijos en % Proyecto con el valor
+del código.
+
+- **`GestionRow` recupera `tipo`/`cantidad`/`frecuencia`/`hhUnitaria`** (el primer ajuste
+  los había quitado) — `calcularGestion(rows, nSemanas, baseHH)` vuelve a 3 argumentos.
+- **`CARGOS_BASE_GESTION`** (`data/plantilla.ts`), constante clara y comentada con los 7
+  cargos base y su %, pensada para que Matías la edite directo si cambia un porcentaje o
+  agrega/quita un cargo base — sin tocar el resto del código.
+- **`reconciliarGestionBase(gestion)`**: el mecanismo real de bloqueo. Fuerza los 7
+  cargos base a estar siempre presentes con el tipo/porcentaje de `CARGOS_BASE_GESTION`,
+  **sin importar qué traiga `gestion`** para esos nombres — se aplica en 3 puntos:
+  `gestionDefault()` (plantilla nueva / "Restaurar plantilla"), la migración de
+  `localStorage` en `App.tsx`, y dentro de `procesarLibroCubicacion` (import de Excel,
+  antes de que el preview le muestre nada al usuario). Esto es lo que hace el bloqueo
+  real, no solo visual: un Excel editado a mano con otro % para "Gestion JP" se
+  reimporta igual, pero el valor queda en 30% de todas formas.
+- **Tabla de Gestión** (`TablaGestion.tsx`): fila base (`removable === false`) → Cargo,
+  Tipo y % de solo lectura (`<span>`, no `<input>`/`<select>`), Cantidad/Frecuencia/HH
+  unitarias en «—», sin botón «✕», con el interruptor Activa igual que antes (eso no se
+  bloqueó — no fue pedido, y desactivar un cargo por proyecto sigue siendo útil). Fila
+  agregada a mano (`removable === true`) → todo editable, con selector Tipo Fijo/%
+  Proyecto que decide qué campos mostrar.
+- **Excel**: la hoja Gestión recupera las columnas Tipo/Cantidad/Frecuencia/Factor/HH
+  unitarias (quitadas en el primer ajuste). Un archivo que intente "editar" un cargo
+  base se reimporta pisando ese intento (ver `reconciliarGestionBase` arriba).
+- Tests reescritos: **40/40** (antes 33), con casos nuevos para `reconciliarGestionBase`
+  (fuerza el valor del código, conserva rowId/activa existente, agrega cargos base
+  ausentes, no toca cargos custom) y para el bloqueo end-to-end vía import de Excel.
+
+### Ambigüedad que resolví con criterio — a validar por Matías
+
+**El interruptor «Activa» de los 7 cargos base queda disponible** (se pueden
+desactivar, no solo los agregados a mano). Matías dijo "no hagas editable esa parte"
+refiriéndose a que él edita los tiempos/porcentajes solo desde el código — no dijo nada
+sobre el interruptor de activar/desactivar, que es una función distinta y ya existía
+desde antes de cualquiera de los dos ajustes. Interpreté que bloquear la edición del
+*valor* no implica bloquear también la posibilidad de *desactivar* el cargo completo
+para un proyecto puntual (ej. un curso sin equipo de Soporte). **Si Matías prefiere que
+los 7 cargos base tampoco se puedan desactivar, es sacar el `<label
+className="fila-toggle">` del branch `base` en `TablaGestion.tsx` — cambio de pocas
+líneas.**
+
+---
+
+## Primer ajuste (27-08-2026, mismo día): Gestión queda solo en modo porcentaje
+
+**Nota: este ajuste quedó parcialmente revertido por el segundo ajuste de arriba** — la
+modalidad Fijo volvió a existir (para cargos agregados a mano). Lo que SÍ sigue vigente
+de este primer ajuste: "Bases Plantillas DG" sigue eliminado (no es uno de los 7 base ni
+algo que Matías haya pedido reintroducir), y GE sigue eliminado.
 
 Pedido textual: *"Reemplaza esta parte para que calcule automático las horas de gestión
 y que no hayan otras horas de gestión, pero sí se pueda agregar otro cargo... y que haya
@@ -129,50 +188,57 @@ parte superior, y saca el cargo de GE del proyecto... es el gestor, ya no va".
 resuelta: "Bases Plantillas DG" se eliminó. #5 quedó resuelta al revés de lo que decía:
 no hay Tipo que editar, todo cargo es porcentual.)*
 
-## Cómo verificar (< 10 min) — estado actual (con el ajuste)
+## Cómo verificar (< 10 min) — estado actual (con los dos ajustes)
 
 ```powershell
 cd "Carpetas\Carpeta - Base arbol Wrike\Calculadora\webapp"
 git log --oneline -3          # tope de claude/gestion-porcentajes-20260827
 npm run build                  # tsc + vite, sin errores
 npm run lint                   # oxlint, mismos 3 warnings preexistentes, 0 nuevos
-npm test                       # vitest run — 33/33
+npm test                       # vitest run — 40/40
 npm run dev                    # abrir http://localhost:5173, iniciar sesion real
 ```
 
 Con sesión real, en la pestaña Cubicación → sección "Gestión del proyecto": deben
-aparecer exactamente los 7 cargos (JP, DI/DG/Sop Senior, DI/DG/Sop TL), sin GE y sin
-"Bases Plantillas DG", cada uno con su % editable y sin columnas de Cantidad/Frecuencia/
-HH unitarias/Tipo. Agregar o quitar un recurso en Cubicación y confirmar que el Total HH
-de cada cargo cambia solo, sin recargar la página. "+ Agregar cargo" debe sumar una fila
-en 0% con nombre y % editables. Exportar a Excel y confirmar que la hoja Gestión trae
-`Cargo | % proyecto | Total HH | Activa` (sin Tipo/Cantidad/Frecuencia/HH unitarias).
+aparecer exactamente los 7 cargos base (JP, DI/DG/Sop Senior, DI/DG/Sop TL), sin GE y sin
+"Bases Plantillas DG", cada uno **de solo lectura** (Cargo y % como texto plano, sin
+input, sin botón «✕») salvo el interruptor Activa. Intentar tipear en el campo de
+porcentaje de un cargo base no debe hacer nada (no hay input ahí). "+ Agregar cargo" debe
+sumar una fila totalmente editable, con selector Tipo Fijo/% Proyecto que cambia qué
+columnas se editan. Agregar o quitar un recurso en Cubicación y confirmar que el Total HH
+de los cargos porcentuales (base y custom) cambia solo, sin recargar la página. Exportar
+a Excel y confirmar que la hoja Gestión trae `Cargo | Tipo | Cantidad | Frecuencia |
+Factor | HH unitarias | % proyecto | Total HH | Activa`. Editar a mano el % de "Gestion
+JP" en ese Excel y reimportarlo: el preview y el resultado final deben mostrar igual 30%,
+no el valor editado (bloqueo real, no solo de interfaz).
 
 ## No se pudo verificar en vivo
 
 Igual que en el resto de esta rama de trabajo: sin la clave real del equipo (Supabase
 Auth) no pude entrar a la app en este entorno para probar visualmente la tabla de
-Gestión con los cargos nuevos, ni antes ni después del ajuste. Se verificó sin
-regresiones el login (con el build id visible en el pie) y toda la lógica de cálculo/
-recálculo en vivo vía los 33 tests unitarios — pero el recorrido de UI real (tabla de
-Gestión simplificada, "+ Agregar cargo") queda pendiente de una pasada visual con sesión
-real antes de darlo por cerrado del todo.
+Gestión, en ninguno de los tres pasos (entrega original, primer ajuste, segundo ajuste).
+Se verificó sin regresiones el login (con el build id visible en el pie) y toda la
+lógica de cálculo/recálculo/bloqueo en vivo vía los 40 tests unitarios — pero el
+recorrido de UI real (fila de solo lectura vs. editable, selector Tipo, reimportar un
+Excel editado a mano) queda pendiente de una pasada visual con sesión real antes de
+darlo por cerrado del todo.
 
-## Nota técnica aparte: byte nulo en importCubicacion.ts (se repitió)
+## Nota técnica aparte: byte nulo en importCubicacion.ts (van dos veces confirmadas)
 
-Al editar `src/importCubicacion.ts` encontré un byte `0x00` incrustado en medio de un
-template literal (entre `${r.seccion}` y `${r.tarea...}`, donde debía haber un espacio).
-No es algo que TypeScript/el editor pueda producir escribiendo código normal — probable
-artefacto de una escritura anterior a este archivo. Lo reescribí completo (mismo
-contenido, sin el byte corrupto) y verifiqué con un script que ningún otro archivo
-tocado en esta sesión tiene el mismo problema.
+Al editar `src/importCubicacion.ts` por primera vez (entrega original) encontré un byte
+`0x00` incrustado en medio de un template literal, donde debía haber un espacio — no es
+algo que TypeScript/el editor produzcan escribiendo código normal. Lo reescribí completo
+y verifiqué por script que ningún otro archivo tenía el mismo problema.
 
-**Volvió a pasar en el ajuste del mismo día** (mismo archivo, `importCubicacion.ts`, al
-reescribirlo para el modelo exclusivamente porcentual) — mismo síntoma, mismo arreglo
-(reescritura completa + verificación por script de los 12 archivos tocados). Dos veces
-en el mismo archivo en el mismo día es sospechoso: si vuelve a aparecer una tercera vez
-(en este archivo o en cualquier otro), vale la pena investigarlo en serio en vez de
-seguir reescribiendo — podría ser el editor, un problema del entorno, u otra cosa.
+**Volvió a pasar en el primer ajuste**, mismo archivo, mismo síntoma — confirmado con el
+mismo chequeo por script. En este segundo ajuste reescribí `importCubicacion.ts` de
+nuevo (por la magnitud del cambio, no porque haya vuelto a verificar corrupción en el
+archivo previo) y confirmé que la versión nueva quedó sin bytes nulos — pero esta vez no
+puedo decir si el archivo tenía o no el problema antes de mi reescritura. Dos casos
+confirmados en el mismo archivo, mismo día, siguen siendo sospechosos: si el síntoma
+reaparece (acá o en otro archivo), vale la pena investigarlo en serio — revisar qué
+proceso está tocando estos archivos entre sesiones (¿sync de OneDrive, un antivirus, el
+propio editor?) en vez de seguir solo reescribiendo cuando aparece.
 
 ## Pasos de Matías para mergear y desplegar
 
@@ -196,9 +262,11 @@ la versión esperada, no una build vieja cacheada).
 - Las ambigüedades #1-3 de la entrega original siguen vigentes — en particular la
   definición de "total del proyecto" (#1) es la más importante de confirmar, ya que si
   está mal toda la cubicación de Gestión calcularía sobre una base distinta a la
-  esperada. #4 y #5 quedaron resueltas por el ajuste (ver arriba).
-- Si los 7 porcentajes por defecto deberían quedar fijos (no editables) — ver nota en
-  la sección del ajuste.
+  esperada. #4 y #5 quedaron resueltas por los ajustes.
+- La ambigüedad del segundo ajuste (interruptor Activa de los 7 cargos base disponible o
+  no) — ver esa sección arriba.
+- Nota técnica del byte nulo repetido en `importCubicacion.ts` — si vuelve a pasar, vale
+  la pena investigar la causa en vez de seguir reescribiendo.
 - Una pasada visual con sesión real antes de dar el flujo por completamente cerrado.
 - Merge/push a `main` (segunda vez, con el ajuste encima) y deploy: quedan para Matías
   (comandos arriba — el `git merge --ff-only` sigue siendo válido).

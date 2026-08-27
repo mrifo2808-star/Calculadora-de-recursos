@@ -29,13 +29,26 @@ export interface ProduccionRow {
   removable: boolean;
 }
 
+/** 'fijo' = cantidad x factor(frecuencia) x hhUnitaria (igual que un recurso de
+ * Cubicacion). 'porcentaje' = porcentaje fijo sobre el total de HH de produccion del
+ * proyecto (recursos de Cubicacion, etapas activas, por curso — ver totalRecursosCurso
+ * en calc.ts). */
+export type TipoCargoGestion = 'fijo' | 'porcentaje';
+
 export interface GestionRow {
   rowId: string;
   cargo: string;
-  /** 0-100: porcentaje fijo sobre el total de HH de produccion del proyecto (recursos de
-   * Cubicacion, etapas activas, por curso — ver totalRecursosCurso en calc.ts). Unica
-   * forma de calculo de un cargo de Gestion: no existe una modalidad de horas fijas. */
+  tipo: TipoCargoGestion;
+  /** Solo aplica si tipo === 'fijo'. */
+  cantidad: number;
+  frecuencia: Frecuencia;
+  hhUnitaria: number;
+  /** 0-100. Solo aplica si tipo === 'porcentaje'. */
   porcentaje: number;
+  /** false = cargo BASE (ver CARGOS_BASE_GESTION en data/plantilla.ts): va siempre en
+   * todo proyecto, con el tipo/porcentaje definidos en el código — no se puede eliminar
+   * ni editar su cargo/tipo/valor desde la interfaz, solo activar/desactivar. true =
+   * cargo agregado por quien cubica: totalmente editable y eliminable. */
   removable: boolean;
   /** false = fila desactivada: se conserva pero se excluye del calculo de totales.
    * Ausente (filas guardadas antes de esta funcionalidad) se trata como true. */

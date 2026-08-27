@@ -93,6 +93,7 @@ export function TablaCubicacion({
               {cabecera}
               <TablaGestion
                 rows={gestionRows}
+                nSemanas={nSemanas}
                 baseGestionHH={baseGestionHH}
                 onChange={onChangeGestion}
                 onAdd={onAddGestion}

@@ -18,31 +18,61 @@ export const PARAMETROS_DEFAULT: ParametrosCurso = {
   modalidad: 'Full',
 };
 
-/** Cargo de Gestion: sus HH son siempre un porcentaje fijo del total de HH de produccion
- * del proyecto (ver calcularGestion/totalRecursosCurso en calc.ts). No existe otra
- * modalidad — ni horas fijas, ni cantidad/frecuencia propias. */
-const cargoPorcentaje = (cargo: string, porcentaje: number, removable = false): GestionRow => ({
-  rowId: nextId('g'),
+/* ============================================================================
+ * CARGOS BASE DE GESTION — van SIEMPRE en todo proyecto, con este porcentaje fijo
+ * sobre el total de HH de producción. Editables SOLO ACÁ, en el código (la tabla de
+ * Gestión los muestra de solo lectura: sin input de cargo/tipo/porcentaje, sin botón
+ * de eliminar — solo se pueden activar/desactivar). Para cambiar un porcentaje o
+ * agregar/quitar un cargo base, editar esta lista y hacer un deploy nuevo.
+ *
+ * Definidos por Matías el 27-08-2026 (JP 30%, Senior DI/DG/Sop 20/5/5%, Jefes de Área
+ * TL DI/DG/Sop 5% cada uno); confirmados como "los de base, van siempre" y bloqueados
+ * a edición desde la interfaz el mismo día.
+ * ========================================================================== */
+export const CARGOS_BASE_GESTION: readonly { cargo: string; porcentaje: number }[] = [
+  { cargo: 'Gestion JP', porcentaje: 30 },
+  { cargo: 'Gestion DI Senior', porcentaje: 20 },
+  { cargo: 'Gestion DG Senior', porcentaje: 5 },
+  { cargo: 'Gestion Sop Senior', porcentaje: 5 },
+  { cargo: 'Gestion DI TL', porcentaje: 5 },
+  { cargo: 'Gestion DG TL', porcentaje: 5 },
+  { cargo: 'Gestion Sop TL', porcentaje: 5 },
+];
+
+const cargoBase = (cargo: string, porcentaje: number, rowId?: string, activa?: boolean): GestionRow => ({
+  rowId: rowId ?? nextId('g'),
   cargo,
+  tipo: 'porcentaje',
+  cantidad: 1,
+  frecuencia: 'Fijo',
+  hhUnitaria: 0,
   porcentaje,
-  removable,
-  activa: true,
+  removable: false,
+  activa: activa !== false,
 });
 
-/** Porcentajes de gestion sobre el total de HH de produccion del proyecto, definidos por
- * Matias el 27-08-2026: JP 30%, Senior (DI/DG/Sop) 20/5/5%, Jefes de Area (TL, uno por
- * DI/DG/Sop) 5% cada uno. Reemplaza el cargo "GE" (gestor), que se elimina del proyecto.
- * Ajuste del mismo dia: Gestion queda EXCLUSIVAMENTE en modo porcentaje — se quita
- * "Bases Plantillas DG" (era de horas fijas, ya no tiene cabida en el modelo). */
-export const gestionDefault = (): GestionRow[] => [
-  cargoPorcentaje('Gestion JP', 30),
-  cargoPorcentaje('Gestion DI Senior', 20),
-  cargoPorcentaje('Gestion DG Senior', 5),
-  cargoPorcentaje('Gestion Sop Senior', 5),
-  cargoPorcentaje('Gestion DI TL', 5),
-  cargoPorcentaje('Gestion DG TL', 5),
-  cargoPorcentaje('Gestion Sop TL', 5),
-];
+/**
+ * Fuerza que los 7 cargos de `CARGOS_BASE_GESTION` estén siempre presentes, en ese
+ * orden, con el tipo/porcentaje del código — nunca el valor que traiga `gestion`, si
+ * es que trae uno distinto para el mismo nombre de cargo. Es la única forma de
+ * garantizar "van siempre, no editables desde la interfaz" incluso si `gestion` viene
+ * de un Excel reimportado (a mano, con otros números) o de un `localStorage` de antes
+ * de este bloqueo. Conserva `rowId`/`activa` de la fila existente si ya había una con
+ * ese nombre, para no perder el estado de activación de quien cubica. Cualquier cargo
+ * agregado a mano (nombre que no es uno de los 7 base) se conserva tal cual, en su
+ * mismo orden relativo, después de los 7 base.
+ */
+export function reconciliarGestionBase(gestion: GestionRow[]): GestionRow[] {
+  const nombresBase = new Set(CARGOS_BASE_GESTION.map((c) => c.cargo));
+  const base = CARGOS_BASE_GESTION.map((c) => {
+    const existente = gestion.find((g) => g.cargo === c.cargo);
+    return cargoBase(c.cargo, c.porcentaje, existente?.rowId, existente?.activa);
+  });
+  const extras = gestion.filter((g) => !nombresBase.has(g.cargo));
+  return [...base, ...extras];
+}
+
+export const gestionDefault = (): GestionRow[] => reconciliarGestionBase([]);
 
 /** Secciones fijas de Cubicacion, en el mismo orden que el Excel RC7. */
 export const SECCIONES = [
@@ -115,6 +145,18 @@ export const produccionDefault = (): ProduccionRow[] => [
 export const nuevaFilaProduccion = (seccion: string): ProduccionRow =>
   row(seccion, '', 1, 'Por curso', null, true);
 
-/** Cargo nuevo agregado a mano ("+ Agregar cargo"): nace en 0% hasta que quien cubica
- * escriba el nombre y el porcentaje que corresponda. */
-export const nuevaFilaGestion = (): GestionRow => cargoPorcentaje('', 0, true);
+/** Cargo nuevo agregado a mano ("+ Agregar cargo"): nace en modo % Proyecto en 0%,
+ * totalmente editable — quien cubica puede cambiarlo a Fijo (Cantidad × Frecuencia ×
+ * HH unitaria) con el selector "Tipo" de su fila si prefiere horas fijas en vez de un
+ * porcentaje del total. A diferencia de los 7 cargos base, este sí se puede eliminar. */
+export const nuevaFilaGestion = (): GestionRow => ({
+  rowId: nextId('g'),
+  cargo: '',
+  tipo: 'porcentaje',
+  cantidad: 1,
+  frecuencia: 'Por semana',
+  hhUnitaria: 0,
+  porcentaje: 0,
+  removable: true,
+  activa: true,
+});

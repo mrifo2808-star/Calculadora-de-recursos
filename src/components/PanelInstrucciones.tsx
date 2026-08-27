@@ -23,14 +23,16 @@ export function PanelInstrucciones() {
         La lista de secciones incluye, al final, <strong>«Gestión del proyecto»</strong> (cargos JP, Senior, Jefes de
         Área, etc.): es una sección más de Cubicación, no un bloque aparte. A diferencia de los recursos, estos
         cargos suelen reutilizarse entre proyectos, así que cada fila de Gestión tiene su propio interruptor «Activa»
-        (junto a «✕») en vez de un botón de eliminar: desactivarla la deja visible pero atenuada y sin sumar horas,
-        sin perder los datos.
+        en vez de (o además de, según el cargo — ver el punto siguiente) un botón «✕» de eliminar: desactivarla la
+        deja visible pero atenuada y sin sumar horas, sin perder los datos.
       </p>
       <p className="panel__texto">
-        Las HH de cada cargo de Gestión son siempre un <strong>% fijo del total de HH de producción</strong> del
-        proyecto (recursos de Cubicación en etapas activas, por curso) — no hay cantidad, frecuencia ni HH unitarias
-        propias de Gestión, y se recalculan solas cada vez que ese total cambia. «+ Agregar cargo» suma uno nuevo con
-        su propio porcentaje, para sumar un rol que no esté entre los siete por defecto.
+        Los <strong>7 cargos base</strong> (JP, Senior DI/DG/Sop, Jefes de Área DI/DG/Sop TL) van siempre en el
+        proyecto, con el porcentaje del total de HH de producción definido en el código — no son editables ni
+        eliminables desde acá, solo se pueden activar/desactivar. «+ Agregar cargo» suma uno nuevo, ese sí totalmente
+        editable: se elige si es «<strong>% Proyecto</strong>» (porcentaje fijo del total de HH de producción del
+        proyecto) o «<strong>Fijo</strong>» (Cantidad × Frecuencia × HH unitaria, igual que un recurso de
+        Cubicación) con el selector «Tipo» de su fila.
       </p>
       <p className="panel__texto">
         Además, cada sección (incluida «Gestión del proyecto») tiene un interruptor «Etapa activa» / «Etapa

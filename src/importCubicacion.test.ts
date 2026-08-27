@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as XLSX from 'xlsx';
 import { compararGestion, compararProduccion, procesarLibroCubicacion } from './importCubicacion';
+import { CARGOS_BASE_GESTION } from './data/plantilla';
 import type { GestionRow, ProduccionRow, RecursoCatalogo } from './types';
 import { SECCIONES } from './data/plantilla';
 
@@ -31,7 +32,7 @@ function libroDePrueba(hojas: {
 }): ArrayBuffer {
   const libro = XLSX.utils.book_new();
   const paramsDefault = [{ Proyecto: 'Curso demo', Cliente: 'Cliente demo', 'N° cursos': 1, 'N° semanas': 4, Modalidad: 'Full' }];
-  const gestionDefault = [{ Cargo: 'Gestion JP', '% proyecto': 30, Activa: 'Sí' }];
+  const gestionDefault = [{ Cargo: 'Cargo de prueba', Cantidad: 1, Frecuencia: 'Por semana', 'HH unitarias': 0.25, Activa: 'Sí' }];
   const cubicacionDefault = [
     { Sección: SECCIONES[0], Tarea: 'Tarea demo', 'Tipo / Recurso': '', Cantidad: 1, Frecuencia: 'Por curso' },
   ];
@@ -52,10 +53,11 @@ function libroDePrueba(hojas: {
 }
 
 describe('procesarLibroCubicacion — estructura', () => {
-  it('parsea un archivo valido sin avisos ni rechazadas', () => {
+  it('parsea un archivo valido sin avisos ni rechazadas (mas los 7 cargos base agregados)', () => {
     const resultado = procesarLibroCubicacion(libroDePrueba({}), CATALOGO);
     expect(resultado.parametros.proyecto).toBe('Curso demo');
-    expect(resultado.gestion).toHaveLength(1);
+    // 1 cargo del archivo + 7 cargos base que reconciliarGestionBase agrega siempre
+    expect(resultado.gestion).toHaveLength(8);
     expect(resultado.produccion).toHaveLength(1);
     expect(resultado.avisos).toHaveLength(0);
     expect(resultado.rechazadas).toHaveLength(0);
@@ -71,14 +73,6 @@ describe('procesarLibroCubicacion — estructura', () => {
     expect(() => procesarLibroCubicacion(buffer, CATALOGO)).toThrow(/columnas esperadas/i);
   });
 
-  it('rechaza un archivo de Gestion del formato anterior (Cantidad/Frecuencia/HH unitarias, sin "% proyecto")', () => {
-    // Gestion es exclusivamente porcentual desde el 27-08-2026: un archivo exportado
-    // antes de ese cambio no tiene la columna "% proyecto" y ya no calza — error
-    // estructural claro, no una importacion parcial silenciosa con horas mal migradas.
-    const buffer = libroDePrueba({ gestion: [{ Cargo: 'Gestion JP', Cantidad: 1, Frecuencia: 'Por semana', 'HH unitarias': 0.25, Activa: 'Sí' }] });
-    expect(() => procesarLibroCubicacion(buffer, CATALOGO)).toThrow(/columnas esperadas.*% proyecto|% proyecto.*columnas esperadas/is);
-  });
-
   it('rechaza un buffer que no es un xlsx valido con un mensaje claro (no una excepcion cruda de la libreria)', () => {
     const basura = new TextEncoder().encode('esto no es un excel').buffer;
     // SheetJS es tolerante: para basura sin estructura de zip no siempre lanza, a veces
@@ -91,7 +85,7 @@ describe('procesarLibroCubicacion — estructura', () => {
     const libro = XLSX.utils.book_new();
     const soloEncabezados = XLSX.utils.json_to_sheet([], { header: ['Proyecto', 'Cliente', 'N° cursos', 'N° semanas', 'Modalidad'] });
     XLSX.utils.book_append_sheet(libro, soloEncabezados, 'Parametros');
-    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet([{ Cargo: 'A', '% proyecto': 10, Activa: 'Sí' }]), 'Gestion');
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet([{ Cargo: 'A', Cantidad: 1, Frecuencia: 'Fijo', 'HH unitarias': 1, Activa: 'Sí' }]), 'Gestion');
     XLSX.utils.book_append_sheet(
       libro,
       XLSX.utils.json_to_sheet([{ Sección: SECCIONES[0], Tarea: 'x', 'Tipo / Recurso': '', Cantidad: 1, Frecuencia: 'Por curso' }]),
@@ -102,46 +96,83 @@ describe('procesarLibroCubicacion — estructura', () => {
   });
 });
 
-describe('procesarLibroCubicacion — filas de Gestion (exclusivamente porcentual)', () => {
+describe('procesarLibroCubicacion — filas de Gestion', () => {
   it('omite (rechaza) una fila sin Cargo y lo reporta', () => {
-    const buffer = libroDePrueba({ gestion: [{ Cargo: '', '% proyecto': 10, Activa: 'Sí' }] });
+    const buffer = libroDePrueba({ gestion: [{ Cargo: '', Cantidad: 1, Frecuencia: 'Por semana', 'HH unitarias': 1, Activa: 'Sí' }] });
     const resultado = procesarLibroCubicacion(buffer, CATALOGO);
-    expect(resultado.gestion).toHaveLength(0);
+    // La fila sin Cargo se rechaza; solo quedan los 7 cargos base (reconciliados).
+    expect(resultado.gestion).toHaveLength(7);
     expect(resultado.rechazadas).toEqual([{ hoja: 'Gestion', fila: 2, motivo: expect.stringContaining('Cargo') }]);
   });
 
   it('interpreta variantes de "Activa" sin exigir el "Sí" exacto del export', () => {
     const buffer = libroDePrueba({
       gestion: [
-        { Cargo: 'A', '% proyecto': 10, Activa: 'si' },
-        { Cargo: 'B', '% proyecto': 10, Activa: 'No (excluida del total)' },
-        { Cargo: 'C', '% proyecto': 10, Activa: '' },
+        { Cargo: 'A', Cantidad: 1, Frecuencia: 'Fijo', 'HH unitarias': 1, Activa: 'si' },
+        { Cargo: 'B', Cantidad: 1, Frecuencia: 'Fijo', 'HH unitarias': 1, Activa: 'No (excluida del total)' },
+        { Cargo: 'C', Cantidad: 1, Frecuencia: 'Fijo', 'HH unitarias': 1, Activa: '' },
       ],
     });
     const resultado = procesarLibroCubicacion(buffer, CATALOGO);
-    expect(resultado.gestion.map((g) => g.activa)).toEqual([true, false, true]);
+    const porCargo = Object.fromEntries(resultado.gestion.filter((g) => ['A', 'B', 'C'].includes(g.cargo)).map((g) => [g.cargo, g.activa]));
+    expect(porCargo).toEqual({ A: true, B: false, C: true });
   });
 
-  it('acepta un porcentaje con coma decimal (formato es-CL) sin aviso', () => {
-    const buffer = libroDePrueba({ gestion: [{ Cargo: 'A', '% proyecto': '7,5', Activa: 'Sí' }] });
+  it('acepta numeros con coma decimal (formato es-CL) sin aviso', () => {
+    const buffer = libroDePrueba({ gestion: [{ Cargo: 'A', Cantidad: '1,5', Frecuencia: 'Fijo', 'HH unitarias': '0,25', Activa: 'Sí' }] });
     const resultado = procesarLibroCubicacion(buffer, CATALOGO);
-    expect(resultado.gestion[0].porcentaje).toBeCloseTo(7.5);
+    const fila = resultado.gestion.find((g) => g.cargo === 'A')!;
+    expect(fila.cantidad).toBeCloseTo(1.5);
+    expect(fila.hhUnitaria).toBeCloseTo(0.25);
     expect(resultado.avisos).toHaveLength(0);
   });
 
-  it('un porcentaje no reconocible cae a 0 con aviso (no se pierde la fila)', () => {
-    const buffer = libroDePrueba({ gestion: [{ Cargo: 'A', '% proyecto': 'no-es-numero', Activa: 'Sí' }] });
+  it('un numero no reconocible cae a 0 con aviso (no se pierde la fila)', () => {
+    const buffer = libroDePrueba({ gestion: [{ Cargo: 'A', Cantidad: 'no-es-numero', Frecuencia: 'Fijo', 'HH unitarias': 1, Activa: 'Sí' }] });
     const resultado = procesarLibroCubicacion(buffer, CATALOGO);
-    expect(resultado.gestion).toHaveLength(1);
-    expect(resultado.gestion[0].porcentaje).toBe(0);
-    expect(resultado.avisos.some((a) => a.includes('% proyecto'))).toBe(true);
+    const fila = resultado.gestion.find((g) => g.cargo === 'A')!;
+    expect(fila.cantidad).toBe(0);
+    expect(resultado.avisos.some((a) => a.includes('Cantidad'))).toBe(true);
   });
 
-  it('un "% proyecto" vacio se importa como 0% sin aviso (cargo agregado a mano, aun sin completar)', () => {
-    const buffer = libroDePrueba({ gestion: [{ Cargo: 'Cargo nuevo', '% proyecto': '', Activa: 'Sí' }] });
+  it('lee un cargo "% Proyecto" con su porcentaje', () => {
+    const buffer = libroDePrueba({
+      gestion: [{ Cargo: 'Refuerzo puntual', Tipo: '% Proyecto', Cantidad: 1, Frecuencia: 'Fijo', 'HH unitarias': 0, '% proyecto': 12, Activa: 'Sí' }],
+    });
     const resultado = procesarLibroCubicacion(buffer, CATALOGO);
-    expect(resultado.gestion[0].porcentaje).toBe(0);
+    const fila = resultado.gestion.find((g) => g.cargo === 'Refuerzo puntual')!;
+    expect(fila.tipo).toBe('porcentaje');
+    expect(fila.porcentaje).toBe(12);
+  });
+
+  it('un archivo sin la columna Tipo (formato anterior a esta funcionalidad) importa el cargo como Fijo', () => {
+    const buffer = libroDePrueba({ gestion: [{ Cargo: 'Cargo viejo', Cantidad: 1, Frecuencia: 'Por semana', 'HH unitarias': 0.25, Activa: 'Sí' }] });
+    const resultado = procesarLibroCubicacion(buffer, CATALOGO);
+    const fila = resultado.gestion.find((g) => g.cargo === 'Cargo viejo')!;
+    expect(fila.tipo).toBe('fijo');
     expect(resultado.avisos).toHaveLength(0);
+  });
+
+  it('los 7 cargos base SIEMPRE quedan con el tipo/porcentaje del código, sin importar lo que traiga el archivo para ellos', () => {
+    // El archivo intenta "editar" Gestion JP a Fijo con otras horas — no debe surtir
+    // efecto: es un cargo base, se bloquea desde el código (reconciliarGestionBase).
+    const buffer = libroDePrueba({
+      gestion: [{ Cargo: 'Gestion JP', Tipo: 'Fijo', Cantidad: 10, Frecuencia: 'Fijo', 'HH unitarias': 999, '% proyecto': 1, Activa: 'Sí' }],
+    });
+    const resultado = procesarLibroCubicacion(buffer, CATALOGO);
+    const jp = resultado.gestion.find((g) => g.cargo === 'Gestion JP')!;
+    expect(jp.tipo).toBe('porcentaje');
+    expect(jp.porcentaje).toBe(30);
+    expect(jp.removable).toBe(false);
+  });
+
+  it('un archivo sin ningun cargo base los agrega igual (van siempre)', () => {
+    const buffer = libroDePrueba({ gestion: [{ Cargo: 'Solo un cargo cualquiera', Cantidad: 1, Frecuencia: 'Fijo', 'HH unitarias': 1, Activa: 'Sí' }] });
+    const resultado = procesarLibroCubicacion(buffer, CATALOGO);
+    const nombresBase = new Set(CARGOS_BASE_GESTION.map((c) => c.cargo));
+    const presentes = new Set(resultado.gestion.map((g) => g.cargo));
+    for (const nombre of nombresBase) expect(presentes.has(nombre)).toBe(true);
+    expect(resultado.gestion).toHaveLength(8); // 7 base + el cargo cualquiera
   });
 });
 
@@ -215,11 +246,15 @@ describe('compararProduccion / compararGestion', () => {
     expect(compararProduccion(actuales, importadas)).toEqual({ nuevas: 1, cambiadas: 1, sinCambios: 1, eliminadas: 1 });
   });
 
-  it('gestion: compara por Cargo y detecta cambios en porcentaje/activa', () => {
+  it('gestion: compara por Cargo y detecta cambios en activa/hhUnitaria/tipo', () => {
     const g = (over: Partial<GestionRow>): GestionRow => ({
       rowId: 'g',
       cargo: 'JP',
-      porcentaje: 30,
+      tipo: 'fijo',
+      cantidad: 1,
+      frecuencia: 'Por semana',
+      hhUnitaria: 0.25,
+      porcentaje: 0,
       removable: true,
       activa: true,
       ...over,
@@ -228,10 +263,10 @@ describe('compararProduccion / compararGestion', () => {
     const sinCambios = compararGestion(actuales, [g({ rowId: 'otro' })]);
     expect(sinCambios).toEqual({ nuevas: 0, cambiadas: 0, sinCambios: 1, eliminadas: 0 });
 
-    const cambiaActiva = compararGestion(actuales, [g({ rowId: 'otro', activa: false })]);
-    expect(cambiaActiva).toEqual({ nuevas: 0, cambiadas: 1, sinCambios: 0, eliminadas: 0 });
+    const cambiada = compararGestion(actuales, [g({ rowId: 'otro', activa: false })]);
+    expect(cambiada).toEqual({ nuevas: 0, cambiadas: 1, sinCambios: 0, eliminadas: 0 });
 
-    const cambiaPorcentaje = compararGestion(actuales, [g({ rowId: 'otro', porcentaje: 45 })]);
-    expect(cambiaPorcentaje).toEqual({ nuevas: 0, cambiadas: 1, sinCambios: 0, eliminadas: 0 });
+    const cambiaTipo = compararGestion(actuales, [g({ rowId: 'otro', tipo: 'porcentaje', porcentaje: 30 })]);
+    expect(cambiaTipo).toEqual({ nuevas: 0, cambiadas: 1, sinCambios: 0, eliminadas: 0 });
   });
 });

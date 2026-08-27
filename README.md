@@ -30,15 +30,25 @@ catalogar" y no suma horas. Se excluyeron del catálogo (respecto al RC7 origina
 recursos que no tenían ningún dato de tiempo DI/DG/SOP registrado ("Grafico plano" y
 "Animacion T3"): sin ese dato no aportan al cálculo y solo generaban filas en 0.
 
-Los cargos de "Gestión del proyecto" no consumen el catálogo de recursos y son
-exclusivamente porcentuales: cada uno es un **% fijo del total de HH de producción**
-del proyecto (recursos de Cubicación en etapas activas, por curso — ver
-`totalRecursosCurso` en `calc.ts`) y se recalcula solo cuando ese total cambia. No hay
-cantidad, frecuencia ni HH unitaria propias de Gestión — ni una modalidad de horas
-fijas. Los 7 cargos por defecto (JP 30%, DI/DG/Sop Senior 20/5/5%, DI/DG/Sop TL 5% cada
-uno — definidos por Matías el 27-08-2026, ajuste el mismo día) se pueden desactivar
-(no eliminar) o editar su porcentaje; "+ Agregar cargo" suma uno nuevo con su propio
-nombre y porcentaje.
+Los cargos de "Gestión del proyecto" no consumen el catálogo de recursos. Hay dos
+clases de fila, distinguidas por si son o no editables desde la interfaz (columna
+`removable` en `GestionRow`, `types.ts`):
+
+- **7 cargos BASE** (`CARGOS_BASE_GESTION` en `data/plantilla.ts`): van siempre en todo
+  proyecto, con el porcentaje definido en el código — JP 30%, DI/DG/Sop Senior 20/5/5%,
+  DI/DG/Sop TL 5% cada uno (definidos por Matías el 27-08-2026). Cada uno es un **% fijo
+  del total de HH de producción** del proyecto (recursos de Cubicación en etapas
+  activas, por curso — ver `totalRecursosCurso` en `calc.ts`) y se recalcula solo cuando
+  ese total cambia. **No son editables ni eliminables desde la interfaz** — solo se
+  pueden activar/desactivar; para cambiar un porcentaje o agregar/quitar un cargo base
+  hay que editar `CARGOS_BASE_GESTION` en el código y desplegar. `reconciliarGestionBase`
+  (mismo archivo) fuerza estos 7 valores en cada carga de `localStorage` y en cada
+  importación de Excel, así que ni un archivo editado a mano ni un estado guardado viejo
+  pueden alterarlos — están bloqueados de verdad, no solo ocultos en la interfaz.
+- **Cargos agregados a mano** ("+ Agregar cargo"): totalmente editables y eliminables.
+  Cada uno elige su propio **Tipo**: **Fijo** (misma fórmula de Factor que producción,
+  Cantidad × Factor × HH unitaria) o **% Proyecto** (igual fórmula que los cargos base,
+  con su propio porcentaje).
 
 ## Desarrollo local
 

@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import { etiquetaCompleta } from './calc';
-import { nextId, SECCIONES } from './data/plantilla';
-import { FRECUENCIAS, type Frecuencia, type GestionRow, type ParametrosCurso, type ProduccionRow, type RecursoCatalogo } from './types';
+import { nextId, reconciliarGestionBase, SECCIONES } from './data/plantilla';
+import { FRECUENCIAS, type Frecuencia, type GestionRow, type ParametrosCurso, type ProduccionRow, type RecursoCatalogo, type TipoCargoGestion } from './types';
 
 /**
  * Importación inversa del .xlsx que genera "⬇ Exportar a Excel" (exportCubicacion.ts):
@@ -9,17 +9,18 @@ import { FRECUENCIAS, type Frecuencia, type GestionRow, type ParametrosCurso, ty
  * no se lee) y mismas columnas. Reemplaza Cubicación/Gestión/Parámetros completos — no
  * hace un merge parcial — así que quien llama debe mostrar el resumen de `compararXxx`
  * antes de aplicar `ResultadoImportacion` al estado.
+ *
+ * Gestión: los 7 cargos base (ver CARGOS_BASE_GESTION en data/plantilla.ts) SIEMPRE
+ * quedan con el tipo/porcentaje del código, sin importar qué traiga el archivo para
+ * ellos — se aplica `reconciliarGestionBase` antes de devolver el resultado, para que
+ * el preview que ve quien importa ya sea el valor final (no uno que después el bloqueo
+ * vaya a pisar). Esto es intencional: esos 7 cargos no son editables ni por Excel.
  */
 
 const HOJAS_REQUERIDAS = ['Parametros', 'Gestion', 'Cubicacion'] as const;
 
 const COLUMNAS_PARAMETROS = ['Proyecto', 'Cliente', 'N° cursos', 'N° semanas', 'Modalidad'] as const;
-// Gestion es exclusivamente porcentual (ajuste 27-08-2026): "% proyecto" es tan
-// requerida como "Cargo". Un .xlsx exportado antes de este cambio (con Cantidad/
-// Frecuencia/HH unitarias en vez de "% proyecto") ya no calza con este formato y debe
-// re-exportarse desde la app — no hay forma de migrar horas fijas a un porcentaje sin
-// una decision de negocio que esta importacion no puede tomar sola.
-const COLUMNAS_GESTION = ['Cargo', '% proyecto', 'Activa'] as const;
+const COLUMNAS_GESTION = ['Cargo', 'Cantidad', 'Frecuencia', 'HH unitarias', 'Activa'] as const;
 const COLUMNAS_CUBICACION = ['Sección', 'Tarea', 'Tipo / Recurso', 'Cantidad', 'Frecuencia'] as const;
 
 export interface FilaRechazada {
@@ -95,6 +96,14 @@ function comoActiva(valor: unknown): boolean {
   return !(texto.startsWith('no') || texto === 'false' || texto === '0');
 }
 
+/** Columna vacía/ausente (archivo de antes de que existiera este campo) -> 'fijo', que
+ * es exactamente el comportamiento que ya tenía toda fila de Gestion. Cualquier texto
+ * que mencione "%"/"porcentaje" -> 'porcentaje'; cualquier otra cosa -> 'fijo'. */
+function comoTipoCargo(valor: unknown): TipoCargoGestion {
+  const texto = comoTexto(valor).toLowerCase();
+  return texto.includes('%') || texto.includes('porcentaje') ? 'porcentaje' : 'fijo';
+}
+
 function encabezadosHoja(hoja: XLSX.WorkSheet): Set<string> {
   const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1 });
   return new Set((filas[0] ?? []).map((c) => comoTexto(c)));
@@ -154,9 +163,8 @@ export function procesarLibroCubicacion(buffer: ArrayBuffer, catalogo: RecursoCa
   };
 
   // ── Gestion ──────────────────────────────────────────────────────────────────────
-  // Exclusivamente porcentual: cada fila es Cargo + % del total de HH de produccion.
   const filasGestion = XLSX.utils.sheet_to_json<Record<string, unknown>>(hojaGestion, { defval: '' });
-  const gestion: GestionRow[] = [];
+  const gestionImportada: GestionRow[] = [];
   filasGestion.forEach((f, i) => {
     const numeroFilaExcel = i + 2; // +1 encabezado, +1 indice 0-based
     const cargo = comoTexto(f['Cargo']);
@@ -165,14 +173,22 @@ export function procesarLibroCubicacion(buffer: ArrayBuffer, catalogo: RecursoCa
       return;
     }
     const contexto = `Gestión, fila ${numeroFilaExcel} (${cargo})`;
-    gestion.push({
+    gestionImportada.push({
       rowId: nextId('g'),
       cargo,
+      tipo: comoTipoCargo(f['Tipo']),
+      cantidad: Math.max(0, comoNumero(f['Cantidad'], 0, avisos, contexto, 'Cantidad')),
+      frecuencia: comoFrecuencia(f['Frecuencia'], avisos, contexto),
+      hhUnitaria: Math.max(0, comoNumero(f['HH unitarias'], 0, avisos, contexto, 'HH unitarias')),
       porcentaje: Math.max(0, comoNumero(f['% proyecto'], 0, avisos, contexto, '% proyecto')),
       removable: true,
       activa: comoActiva(f['Activa']),
     });
   });
+  // Los 7 cargos base SIEMPRE quedan con el tipo/porcentaje del codigo, sin importar
+  // que traiga el archivo para ellos (no son editables ni por Excel) — ver el
+  // comentario grande al inicio del archivo.
+  const gestion = reconciliarGestionBase(gestionImportada);
 
   // ── Cubicacion ───────────────────────────────────────────────────────────────────
   // Mismo formato de etiqueta que calc.ts escribe en "Tipo / Recurso" al exportar
@@ -268,7 +284,12 @@ export const compararProduccion = (actuales: ProduccionRow[], importadas: Produc
 
 const claveGestion = (r: GestionRow): string => r.cargo.trim().toLowerCase();
 const igualesGestion = (a: GestionRow, b: GestionRow): boolean =>
-  redondear(a.porcentaje) === redondear(b.porcentaje) && a.activa === b.activa;
+  a.tipo === b.tipo &&
+  redondear(a.cantidad) === redondear(b.cantidad) &&
+  a.frecuencia === b.frecuencia &&
+  redondear(a.hhUnitaria) === redondear(b.hhUnitaria) &&
+  redondear(a.porcentaje) === redondear(b.porcentaje) &&
+  a.activa === b.activa;
 
 export const compararGestion = (actuales: GestionRow[], importadas: GestionRow[]): ConteoDiff =>
   compararFilas(actuales, importadas, claveGestion, igualesGestion);
