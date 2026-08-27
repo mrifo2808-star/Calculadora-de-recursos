@@ -194,6 +194,27 @@ describe('reconciliarGestionBase — el bloqueo de los 7 cargos base', () => {
     const encontrado = resultado.find((g) => g.cargo === 'Refuerzo puntual');
     expect(encontrado).toEqual(custom);
   });
+
+  it('descarta un cargo base huerfano de un nombre anterior (no removable, sin coincidir con ningun nombre actual)', () => {
+    // Caso real reportado por Matias: localStorage de antes de un rename de cargo base
+    // (ej. "Gestion QA TL" -> "Gestion Sop TL", o "Gestion JP" renombrado a mano a
+    // "Gestión Jefe de proyecto" cuando el nombre todavia era editable) deja una fila
+    // removable:false que ya no calza con ningun cargo de CARGOS_BASE_GESTION — sin
+    // este descarte, quedaba duplicada para siempre y sin boton "✕" para sacarla.
+    const huerfanoRenombrado: GestionRow = { ...gestionDefault()[0], cargo: 'Gestión Jefe de proyecto' };
+    const huerfanoViejo = filaGestionFija('Gestion QA TL', 1, 0.1, { removable: false });
+    const resultado = reconciliarGestionBase([huerfanoRenombrado, huerfanoViejo]);
+    expect(resultado).toHaveLength(7); // solo los 7 base — ningun huerfano sobrevive
+    expect(resultado.some((g) => g.cargo === 'Gestión Jefe de proyecto')).toBe(false);
+    expect(resultado.some((g) => g.cargo === 'Gestion QA TL')).toBe(false);
+  });
+
+  it('SI conserva un cargo agregado a mano (removable:true) aunque su nombre se parezca a uno base', () => {
+    const parecidoPeroRemovible = filaGestionFija('Gestion QA TL', 1, 0.1); // removable:true por defecto del helper
+    const resultado = reconciliarGestionBase([parecidoPeroRemovible]);
+    expect(resultado).toHaveLength(8); // 7 base + este, porque SI es removable
+    expect(resultado.some((g) => g.cargo === 'Gestion QA TL' && g.removable === true)).toBe(true);
+  });
 });
 
 describe('calcularResumen — integracion con Gestion (base porcentual + cargo fijo agregado)', () => {

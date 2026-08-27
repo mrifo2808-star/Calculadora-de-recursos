@@ -4,10 +4,45 @@ Rama: `claude/gestion-porcentajes-20260827`. **Push autorizado por este encargo 
 está en origin.** Merge y deploy quedan para Matías (pasos al final).
 
 **Nota de estado**: Matías ya mergeó y desplegó la entrega original (`ae2003d`/`960eb60`,
-modelo Fijo/% Proyecto) y el primer ajuste (`5c4403d`, Gestión exclusivamente
-porcentual) — confirmado porque `main`/`origin/main` llegaron a estar en `5c4403d` antes
-de este segundo ajuste. Este documento queda en orden cronológico **inverso** (lo más
-nuevo primero): leer el segundo ajuste primero, que es lo vigente.
+modelo Fijo/% Proyecto), el primer ajuste (`5c4403d`, Gestión exclusivamente porcentual)
+y el segundo ajuste (`b4d6eed`, bloqueo de los 7 cargos base) — confirmado porque
+`main`/`origin/main` llegaron a estar en `b4d6eed` antes de este arreglo. Este documento
+queda en orden cronológico **inverso** (lo más nuevo primero): leer el arreglo de abajo
+primero, que es lo vigente.
+
+## Arreglo (27-08-2026, mismo día): cargos base huérfanos duplicados sin botón de eliminar
+
+Matías reportó con una captura de su tabla ya desplegada: 9 filas en vez de 7, con
+**"Gestión Jefe de proyecto" (30%) duplicando a "Gestion JP"** y **"Gestion QA TL" (5%)
+duplicando a "Gestion Sop TL"** — ninguna de las dos con botón «✕», Total HH inflado a
+943,36 en vez del valor correcto. Pidió sacar la fila duplicada.
+
+**Causa raíz** (no era una fila cualquiera, era un bug real de `reconciliarGestionBase`):
+el `localStorage` de Matías traía cargos de una versión de código anterior a este mismo
+día — "Gestion QA TL" es el nombre original de antes del rename a "Sop TL"; "Gestión Jefe
+de proyecto" es, casi seguro, "Gestion JP" renombrado a mano en algún momento en que el
+campo Cargo todavía era editable (antes del segundo ajuste). Ambas filas ya tenían
+`removable: false` (las puso el sistema como cargo base en su momento), pero como su
+*nombre* ya no coincide con ningún cargo de `CARGOS_BASE_GESTION` actual,
+`reconciliarGestionBase` nunca las reconocía como "ya existe, hay que actualizar" — las
+trataba como "extra" y las conservaba tal cual, para siempre, sin poder eliminarlas
+(el botón «✕» solo aparece si `removable === true`, y estas filas nunca lo fueron).
+
+**Arreglo**: `reconciliarGestionBase` ahora descarta cualquier fila `removable === false`
+cuyo nombre no esté en la lista actual de `CARGOS_BASE_GESTION` — un cargo base
+"huérfano" de un nombre viejo, en vez de quedar duplicado para siempre. Un cargo
+agregado a mano de verdad (`removable === true`) nunca se toca, sin importar que su
+nombre se parezca a uno base (test agregado para ese caso exacto, para no volver a
+romperlo). Se aplica automáticamente en los mismos 3 puntos de siempre
+(`gestionDefault()`, carga de `localStorage`, import de Excel) — **Matías no tiene que
+hacer nada manual**: la próxima vez que la app cargue (recargar la página basta, el
+próximo `deploy` incluido) las dos filas huérfanas desaparecen solas y el total vuelve a
+943,36 − 257,28 (JP duplicado) − 42,88 (QA TL huérfano) = **643,2**.
+
+2 tests nuevos (42/42 en total): uno reproduce exactamente el caso reportado (dos
+huérfanos removable:false con nombres viejos, ninguno sobrevive), otro confirma que un
+cargo agregado a mano con un nombre parecido a uno base SÍ se conserva (evita que el
+arreglo se pase de listo y borre algo legítimo).
 
 ## Segundo ajuste (27-08-2026, mismo día): los 7 cargos base quedan bloqueados a edición
 
@@ -188,40 +223,44 @@ parte superior, y saca el cargo de GE del proyecto... es el gestor, ya no va".
 resuelta: "Bases Plantillas DG" se eliminó. #5 quedó resuelta al revés de lo que decía:
 no hay Tipo que editar, todo cargo es porcentual.)*
 
-## Cómo verificar (< 10 min) — estado actual (con los dos ajustes)
+## Cómo verificar (< 10 min) — estado actual (con los ajustes y el arreglo)
 
 ```powershell
 cd "Carpetas\Carpeta - Base arbol Wrike\Calculadora\webapp"
 git log --oneline -3          # tope de claude/gestion-porcentajes-20260827
 npm run build                  # tsc + vite, sin errores
 npm run lint                   # oxlint, mismos 3 warnings preexistentes, 0 nuevos
-npm test                       # vitest run — 40/40
+npm test                       # vitest run — 42/42
 npm run dev                    # abrir http://localhost:5173, iniciar sesion real
 ```
 
 Con sesión real, en la pestaña Cubicación → sección "Gestión del proyecto": deben
-aparecer exactamente los 7 cargos base (JP, DI/DG/Sop Senior, DI/DG/Sop TL), sin GE y sin
-"Bases Plantillas DG", cada uno **de solo lectura** (Cargo y % como texto plano, sin
-input, sin botón «✕») salvo el interruptor Activa. Intentar tipear en el campo de
-porcentaje de un cargo base no debe hacer nada (no hay input ahí). "+ Agregar cargo" debe
-sumar una fila totalmente editable, con selector Tipo Fijo/% Proyecto que cambia qué
-columnas se editan. Agregar o quitar un recurso en Cubicación y confirmar que el Total HH
-de los cargos porcentuales (base y custom) cambia solo, sin recargar la página. Exportar
+aparecer **exactamente 7 filas base** (JP, DI/DG/Sop Senior, DI/DG/Sop TL), sin GE, sin
+"Bases Plantillas DG", sin duplicados de nombre viejo ("Gestión Jefe de proyecto",
+"Gestion QA TL") y con el Total HH correcto — este es justo el caso que reportó Matías,
+el más importante de confirmar visualmente. Cada fila base **de solo lectura** (Cargo y
+% como texto plano, sin input, sin botón «✕») salvo el interruptor Activa. Intentar
+tipear en el campo de porcentaje de un cargo base no debe hacer nada (no hay input ahí).
+"+ Agregar cargo" debe sumar una fila totalmente editable, con selector Tipo Fijo/%
+Proyecto que cambia qué columnas se editan. Agregar o quitar un recurso en Cubicación y
+confirmar que el Total HH de los cargos porcentuales (base y custom) cambia solo, sin
+recargar la página. Exportar
 a Excel y confirmar que la hoja Gestión trae `Cargo | Tipo | Cantidad | Frecuencia |
 Factor | HH unitarias | % proyecto | Total HH | Activa`. Editar a mano el % de "Gestion
 JP" en ese Excel y reimportarlo: el preview y el resultado final deben mostrar igual 30%,
 no el valor editado (bloqueo real, no solo de interfaz).
 
-## No se pudo verificar en vivo
+## No se pudo verificar en vivo (con una excepción: esta vez sí hubo señal real)
 
-Igual que en el resto de esta rama de trabajo: sin la clave real del equipo (Supabase
-Auth) no pude entrar a la app en este entorno para probar visualmente la tabla de
-Gestión, en ninguno de los tres pasos (entrega original, primer ajuste, segundo ajuste).
-Se verificó sin regresiones el login (con el build id visible en el pie) y toda la
-lógica de cálculo/recálculo/bloqueo en vivo vía los 40 tests unitarios — pero el
-recorrido de UI real (fila de solo lectura vs. editable, selector Tipo, reimportar un
-Excel editado a mano) queda pendiente de una pasada visual con sesión real antes de
-darlo por cerrado del todo.
+Sin la clave real del equipo (Supabase Auth) no pude entrar a la app en este entorno
+para probar visualmente la tabla de Gestión, en ninguno de los pasos anteriores (entrega
+original, primer ajuste, segundo ajuste) ni en este arreglo. La diferencia esta vez: el
+propio Matías mandó una captura de la app ya desplegada mostrando el bug (9 filas en vez
+de 7, sin botón «✕» en las duplicadas) — esa captura fue la evidencia real que confirmó
+la causa raíz, no una suposición sin verificar. El arreglo en sí (que las dos filas
+huérfanas desaparezcan y el total baje a 643,2) sigue sin confirmarse visualmente por mí;
+queda para que Matías lo revise después de desplegar — es el primer chequeo que vale la
+pena hacer, más importante que cualquier otro de esta lista.
 
 ## Nota técnica aparte: byte nulo en importCubicacion.ts (van dos veces confirmadas)
 
@@ -259,6 +298,10 @@ la versión esperada, no una build vieja cacheada).
 
 ## Pendiente / requiere decisión de Matías
 
+- **Primero que nada**: confirmar visualmente después del deploy que las 2 filas
+  huérfanas ("Gestión Jefe de proyecto", "Gestion QA TL") ya no aparecen y que el Total
+  HH Gestión bajó a 643,2 — es el bug que reportó, el único de esta lista con evidencia
+  real de que algo estaba mal.
 - Las ambigüedades #1-3 de la entrega original siguen vigentes — en particular la
   definición de "total del proyecto" (#1) es la más importante de confirmar, ya que si
   está mal toda la cubicación de Gestión calcularía sobre una base distinta a la

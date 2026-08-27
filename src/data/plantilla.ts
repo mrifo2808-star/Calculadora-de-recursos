@@ -58,9 +58,19 @@ const cargoBase = (cargo: string, porcentaje: number, rowId?: string, activa?: b
  * garantizar "van siempre, no editables desde la interfaz" incluso si `gestion` viene
  * de un Excel reimportado (a mano, con otros números) o de un `localStorage` de antes
  * de este bloqueo. Conserva `rowId`/`activa` de la fila existente si ya había una con
- * ese nombre, para no perder el estado de activación de quien cubica. Cualquier cargo
- * agregado a mano (nombre que no es uno de los 7 base) se conserva tal cual, en su
- * mismo orden relativo, después de los 7 base.
+ * ese nombre, para no perder el estado de activación de quien cubica.
+ *
+ * `removable === false` es el marcador de "esto lo generó el sistema como cargo base"
+ * en TODA la historia de este archivo (gestionDefault/cargoFijo/cargoPorcentaje/
+ * cargoBase siempre lo pusieron así; nuevaFilaGestion siempre usa `true`). Por eso una
+ * fila `removable === false` cuyo nombre YA NO está en `CARGOS_BASE_GESTION` no es un
+ * cargo agregado a mano — es un cargo base de una versión anterior del código (medio
+ * renombrado, por ejemplo "Gestion QA TL" antes de renombrarse a "Gestion Sop TL", o
+ * un cargo cuyo nombre alguien editó cuando esa columna todavía era editable) que quedó
+ * huérfano: no calza con ningún nombre actual, así que nunca se reemplaza arriba, y al
+ * no ser removable tampoco tiene botón "✕" para que quien cubica lo saque a mano. Se
+ * descarta acá — es la única forma de limpiarlo. Un cargo agregado a mano de verdad
+ * (`removable === true`) nunca se toca, sin importar su nombre.
  */
 export function reconciliarGestionBase(gestion: GestionRow[]): GestionRow[] {
   const nombresBase = new Set(CARGOS_BASE_GESTION.map((c) => c.cargo));
@@ -68,7 +78,7 @@ export function reconciliarGestionBase(gestion: GestionRow[]): GestionRow[] {
     const existente = gestion.find((g) => g.cargo === c.cargo);
     return cargoBase(c.cargo, c.porcentaje, existente?.rowId, existente?.activa);
   });
-  const extras = gestion.filter((g) => !nombresBase.has(g.cargo));
+  const extras = gestion.filter((g) => !nombresBase.has(g.cargo) && g.removable !== false);
   return [...base, ...extras];
 }
 
