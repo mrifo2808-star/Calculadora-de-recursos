@@ -29,20 +29,12 @@ export interface ProduccionRow {
   removable: boolean;
 }
 
-/** 'fijo' = cantidad x factor(frecuencia) x hhUnitaria (modelo original). 'porcentaje' =
- * porcentaje fijo sobre el total de HH de produccion del proyecto (recursos de
- * Cubicacion, etapas activas, por curso) — cantidad/frecuencia/hhUnitaria no aplican. */
-export type TipoCargoGestion = 'fijo' | 'porcentaje';
-
 export interface GestionRow {
   rowId: string;
   cargo: string;
-  /** Ausente (filas guardadas antes de esta funcionalidad) se trata como 'fijo'. */
-  tipo: TipoCargoGestion;
-  cantidad: number;
-  frecuencia: Frecuencia;
-  hhUnitaria: number;
-  /** 0-100. Solo aplica si tipo === 'porcentaje'; ausente/irrelevante si tipo === 'fijo'. */
+  /** 0-100: porcentaje fijo sobre el total de HH de produccion del proyecto (recursos de
+   * Cubicacion, etapas activas, por curso — ver totalRecursosCurso en calc.ts). Unica
+   * forma de calculo de un cargo de Gestion: no existe una modalidad de horas fijas. */
   porcentaje: number;
   removable: boolean;
   /** false = fila desactivada: se conserva pero se excluye del calculo de totales.

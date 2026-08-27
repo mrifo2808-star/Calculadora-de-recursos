@@ -27,10 +27,10 @@ export function PanelInstrucciones() {
         sin perder los datos.
       </p>
       <p className="panel__texto">
-        Cada cargo de Gestión es de <strong>Tipo</strong> «Fijo» (Cantidad × Frecuencia × HH unitarias, igual que un
-        recurso) o «<strong>% Proyecto</strong>» (un porcentaje fijo del total de HH de producción del proyecto —
-        recursos de Cubicación en etapas activas, por curso). Los cargos «% Proyecto» se recalculan solos cada vez
-        que cambia ese total; no tienen Cantidad/Frecuencia/HH unitarias propias (se muestran con «—»).
+        Las HH de cada cargo de Gestión son siempre un <strong>% fijo del total de HH de producción</strong> del
+        proyecto (recursos de Cubicación en etapas activas, por curso) — no hay cantidad, frecuencia ni HH unitarias
+        propias de Gestión, y se recalculan solas cada vez que ese total cambia. «+ Agregar cargo» suma uno nuevo con
+        su propio porcentaje, para sumar un rol que no esté entre los siete por defecto.
       </p>
       <p className="panel__texto">
         Además, cada sección (incluida «Gestión del proyecto») tiene un interruptor «Etapa activa» / «Etapa

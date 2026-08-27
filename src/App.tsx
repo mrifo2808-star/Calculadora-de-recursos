@@ -10,6 +10,7 @@ import {
   etapasActivasDefault,
   PARAMETROS_DEFAULT,
   gestionDefault,
+  nextId,
   nuevaFilaGestion,
   nuevaFilaProduccion,
   produccionDefault,
@@ -31,6 +32,24 @@ const STORAGE_KEY = 'welearn-calculadora-v1';
  * inestables. */
 const etapaActiva = (etapasActivas: Record<string, boolean>, etapa: string): boolean => etapasActivas[etapa] !== false;
 
+/** Forma que podia tener una fila de Gestion guardada en localStorage antes de fijar el
+ * modelo a "siempre porcentaje" (27-08-2026): con 'tipo' fijo/porcentaje (version
+ * intermedia, nunca llego a produccion) o directamente sin 'tipo' ni 'porcentaje'
+ * (version original, de horas fijas). Solo se usa para migrar lo que haya guardado. */
+type GestionRowGuardada = Partial<GestionRow> & { tipo?: 'fijo' | 'porcentaje' };
+
+/** Una fila que ya era 'porcentaje' conserva su valor. Cualquier otra (sin 'tipo', o
+ * 'tipo' === 'fijo': ambas eran horas fijas) no tiene un % que migrar automaticamente —
+ * nace en 0% en vez de perderse, hasta que alguien le asigne uno o la elimine. */
+const migrarGestion = (gestion: GestionRowGuardada[] | undefined): GestionRow[] =>
+  (gestion ?? (gestionDefault() as GestionRowGuardada[])).map((g) => ({
+    rowId: g.rowId ?? nextId('g'),
+    cargo: g.cargo ?? '',
+    porcentaje: g.tipo === 'fijo' ? 0 : (g.porcentaje ?? 0),
+    removable: g.removable ?? true,
+    activa: g.activa !== false,
+  }));
+
 interface Estado {
   parametros: ParametrosCurso;
   gestion: GestionRow[];
@@ -46,14 +65,7 @@ function estadoInicial(): Estado {
       const guardado = JSON.parse(raw) as Partial<Estado>;
       return {
         parametros: guardado.parametros ?? PARAMETROS_DEFAULT,
-        // tipo/porcentaje: filas guardadas antes de esta funcionalidad no los tienen —
-        // se completan como 'fijo'/0, que es exactamente su comportamiento de siempre
-        // (cantidad x factor x hhUnitaria).
-        gestion: (guardado.gestion ?? gestionDefault()).map((g) => ({
-          ...g,
-          tipo: g.tipo ?? 'fijo',
-          porcentaje: g.porcentaje ?? 0,
-        })),
+        gestion: migrarGestion(guardado.gestion as GestionRowGuardada[] | undefined),
         produccion: guardado.produccion ?? produccionDefault(),
         // Merge con el default: estados guardados antes de esta funcionalidad no tienen
         // etapasActivas, y una etapa nueva que se agregue a futuro debe nacer activa.
@@ -113,7 +125,7 @@ function App() {
     // (etapas activas, por curso) — se calcula ANTES de Gestion para que un cargo
     // porcentual nunca dependa de si mismo ni de otro cargo de Gestion.
     const baseGestionHH = totalRecursosCurso(produccionCalc);
-    const gestionCalc = calcularGestion(gestionEnEtapaActiva, estado.parametros.nSemanas, baseGestionHH);
+    const gestionCalc = calcularGestion(gestionEnEtapaActiva, baseGestionHH);
 
     const gestionParaTotales = gestionCalc.filter((r) => r.activa !== false);
     const resumen = calcularResumen(produccionCalc, gestionParaTotales, estado.parametros.nCursos, seccionesActivas);

@@ -1,8 +1,64 @@
 # VALIDAR — Gestión por % del proyecto + elimina GE (2026-08-27)
 
-Rama: `claude/gestion-porcentajes-20260827` (commit `ae2003d`, sobre `main` actualizado
-en `9bdabdc`). **Push autorizado por este encargo — ya está en origin.** Merge y deploy
-quedan para Matías (pasos al final).
+Rama: `claude/gestion-porcentajes-20260827`. **Push autorizado por este encargo — ya
+está en origin.** Merge y deploy quedan para Matías (pasos al final).
+
+**Nota de estado**: Matías ya mergeó y desplegó la primera entrega de este documento
+(commits `ae2003d`/`960eb60`, con el modelo de dos tipos Fijo/% Proyecto descrito más
+abajo) — confirmado porque `main`/`origin/main` quedaron en `960eb60`. El mismo día pidió
+un ajuste (ver sección siguiente) que esta rama ya trae encima, listo para un segundo
+merge. El resto de este documento describe la entrega ORIGINAL tal cual se validó
+entonces; leer primero el ajuste, que es lo vigente.
+
+## Ajuste del mismo día (27-08-2026): Gestión queda solo en modo porcentaje
+
+Pedido textual: *"Reemplaza esta parte para que calcule automático las horas de gestión
+y que no hayan otras horas de gestión, pero sí se pueda agregar otro cargo... y que haya
+un campo para agregar porcentaje."*
+
+Se eliminó por completo la modalidad "Fijo" que traía la primera entrega — Gestión queda
+exclusivamente en modo porcentaje:
+
+- **`GestionRow` se simplifica** a `{ rowId, cargo, porcentaje, removable, activa }` — sin
+  `tipo`, `cantidad`, `frecuencia` ni `hhUnitaria`. `calcularGestion(rows, baseHH)` ahora
+  toma 2 argumentos (antes 3: ya no necesita `nSemanas`, no hay frecuencia que multiplicar).
+- **"Bases Plantillas DG" se quitó** de `gestionDefault()` (era el único cargo Fijo,
+  12 HH) — la ambigüedad #4 de la entrega anterior queda resuelta: ya no tiene cabida en
+  el modelo. `gestionDefault()` trae ahora exactamente los 7 cargos porcentuales.
+- **Tabla de Gestión simplificada**: columnas Cargo | % proyecto | Total HH | (activar/
+  eliminar) — se quitaron Tipo, Cantidad, Frecuencia y HH unitarias por completo, no solo
+  se ocultan.
+- **"+ Agregar cargo" sigue disponible**: crea un cargo nuevo en 0%, con su propio campo
+  de nombre y de porcentaje — responde directamente al "pero sí se pueda agregar otro
+  cargo... y que haya un campo para agregar porcentaje" del pedido.
+- **Los porcentajes de los 7 cargos por defecto quedan editables** (igual que antes del
+  ajuste) — no fue pedido explícitamente pero es coherente con "campo para agregar
+  porcentaje" aplicado también a los existentes, y con que el resto de la app es
+  editable; de bajo riesgo. **Si Matías prefiere que los 7 por defecto queden fijos y
+  solo lo agregado a mano sea editable, es acotar el `disabled` del input en
+  `TablaGestion.tsx` — un cambio de una línea.**
+- **Excel**: la hoja Gestión pierde las columnas Tipo/Cantidad/Frecuencia/HH
+  unitarias/Factor — queda `Cargo | % proyecto | Total HH | Activa`. Un archivo
+  exportado con el modelo anterior (con esas columnas, sin nada raro) ya no calza:
+  **ahora es un error de estructura claro** ("faltan columnas: % proyecto"), no una
+  importación silenciosa a 0% — porque migrar horas fijas a un porcentaje sin criterio
+  de negocio sería inventar un dato, no importarlo. Reexportar desde la app resuelve.
+- **Migración de `localStorage`**: quien ya tenía guardada la versión con Tipo
+  Fijo/Porcentaje (poco probable — nunca llegó a producción real, solo a `main`)
+  conserva sus cargos; los que eran "Fijo" pasan a 0% (sin horas que migrar
+  automáticamente), los que ya eran "% Proyecto" conservan su valor. Ninguna fila
+  desaparece sola.
+- **Nota técnica**: al reeditar `src/importCubicacion.ts` volví a encontrarlo con
+  bytes `0x00` incrustados (mismo síntoma que la nota al final de este documento, ver
+  más abajo) — lo reescribí completo de nuevo y confirmé con un script que los 12
+  archivos tocados en este ajuste no tienen el problema.
+
+Tests: se reescribieron `calc.test.ts` e `importCubicacion.test.ts` para el modelo
+nuevo (33/33 — antes 29). Build y lint limpios, mismos 3 warnings preexistentes.
+
+---
+
+## Entrega original (ya mergeada y desplegada) — commit `ae2003d`
 
 ## Qué se pidió (textual)
 
@@ -65,45 +121,58 @@ parte superior, y saca el cargo de GE del proyecto... es el gestor, ya no va".
    también debía convertirse a algo o eliminarse, no lo hice porque no fue mencionado.
 5. **Columna "Tipo" editable por el usuario**: agregué un selector Fijo/% Proyecto en
    cada fila de Gestión (no solo en las 7 nuevas) para que un cargo agregado a mano con
-   "+ Agregar cargo" también pueda ser de cualquiera de los dos tipos. No fue pedido
-   explícitamente, pero es consistente con el resto de la app (todo es editable) y de
-   bajo riesgo — fácil de quitar si Matías prefiere que el tipo quede fijo por cargo.
+   "+ Agregar cargo" también pueda ser de cualquiera de los dos tipos. **Superada por el
+   ajuste del mismo día**: Matías pidió que no exista otra modalidad de horas — la
+   columna Tipo se eliminó por completo, ver arriba.
 
-## Cómo verificar (< 10 min)
+*(Ambigüedades #1, #2, #3 siguen vigentes tal cual — el ajuste no las tocó. #4 quedó
+resuelta: "Bases Plantillas DG" se eliminó. #5 quedó resuelta al revés de lo que decía:
+no hay Tipo que editar, todo cargo es porcentual.)*
+
+## Cómo verificar (< 10 min) — estado actual (con el ajuste)
 
 ```powershell
 cd "Carpetas\Carpeta - Base arbol Wrike\Calculadora\webapp"
-git log --oneline -3          # debe mostrar ae2003d en claude/gestion-porcentajes-20260827
+git log --oneline -3          # tope de claude/gestion-porcentajes-20260827
 npm run build                  # tsc + vite, sin errores
 npm run lint                   # oxlint, mismos 3 warnings preexistentes, 0 nuevos
-npm test                       # vitest run — 29/29 (17 previos + 12 nuevos de este cambio)
+npm test                       # vitest run — 33/33
 npm run dev                    # abrir http://localhost:5173, iniciar sesion real
 ```
 
 Con sesión real, en la pestaña Cubicación → sección "Gestión del proyecto": deben
-aparecer los 7 cargos nuevos (JP, DI/DG/Sop Senior, DI/DG/Sop TL) con Tipo "% Proyecto",
-sin GE, más "Bases Plantillas DG" (Fijo). Agregar o quitar un recurso en Cubicación y
-confirmar que el Total HH de cada cargo porcentual cambia solo, sin recargar la página.
-Exportar a Excel y confirmar que la hoja Gestión trae las columnas "Tipo" y "% proyecto".
+aparecer exactamente los 7 cargos (JP, DI/DG/Sop Senior, DI/DG/Sop TL), sin GE y sin
+"Bases Plantillas DG", cada uno con su % editable y sin columnas de Cantidad/Frecuencia/
+HH unitarias/Tipo. Agregar o quitar un recurso en Cubicación y confirmar que el Total HH
+de cada cargo cambia solo, sin recargar la página. "+ Agregar cargo" debe sumar una fila
+en 0% con nombre y % editables. Exportar a Excel y confirmar que la hoja Gestión trae
+`Cargo | % proyecto | Total HH | Activa` (sin Tipo/Cantidad/Frecuencia/HH unitarias).
 
 ## No se pudo verificar en vivo
 
 Igual que en el resto de esta rama de trabajo: sin la clave real del equipo (Supabase
 Auth) no pude entrar a la app en este entorno para probar visualmente la tabla de
-Gestión con los cargos nuevos. Se verificó sin regresiones el login (con el build id
-nuevo visible en el pie) y toda la lógica de cálculo/recálculo en vivo vía los 29 tests
-unitarios — pero el recorrido de UI real (columna Tipo, inputs de %, tabla completa)
-queda pendiente de una pasada visual con sesión real antes de darlo por cerrado del todo.
+Gestión con los cargos nuevos, ni antes ni después del ajuste. Se verificó sin
+regresiones el login (con el build id visible en el pie) y toda la lógica de cálculo/
+recálculo en vivo vía los 33 tests unitarios — pero el recorrido de UI real (tabla de
+Gestión simplificada, "+ Agregar cargo") queda pendiente de una pasada visual con sesión
+real antes de darlo por cerrado del todo.
 
-## Nota técnica aparte: byte nulo en importCubicacion.ts
+## Nota técnica aparte: byte nulo en importCubicacion.ts (se repitió)
 
 Al editar `src/importCubicacion.ts` encontré un byte `0x00` incrustado en medio de un
 template literal (entre `${r.seccion}` y `${r.tarea...}`, donde debía haber un espacio).
 No es algo que TypeScript/el editor pueda producir escribiendo código normal — probable
 artefacto de una escritura anterior a este archivo. Lo reescribí completo (mismo
 contenido, sin el byte corrupto) y verifiqué con un script que ningún otro archivo
-tocado en esta sesión tiene el mismo problema. Mencionarlo por si vuelve a aparecer en
-otro archivo — no debería, pero vale la pena que quede registrado.
+tocado en esta sesión tiene el mismo problema.
+
+**Volvió a pasar en el ajuste del mismo día** (mismo archivo, `importCubicacion.ts`, al
+reescribirlo para el modelo exclusivamente porcentual) — mismo síntoma, mismo arreglo
+(reescritura completa + verificación por script de los 12 archivos tocados). Dos veces
+en el mismo archivo en el mismo día es sospechoso: si vuelve a aparecer una tercera vez
+(en este archivo o en cualquier otro), vale la pena investigarlo en serio en vez de
+seguir reescribiendo — podría ser el editor, un problema del entorno, u otra cosa.
 
 ## Pasos de Matías para mergear y desplegar
 
@@ -124,8 +193,12 @@ la versión esperada, no una build vieja cacheada).
 
 ## Pendiente / requiere decisión de Matías
 
-- Las 5 ambigüedades listadas arriba, en particular la definición de "total del
-  proyecto" (punto 1) — es la más importante de confirmar, ya que si está mal toda la
-  cubicación de Gestión calcularía sobre una base distinta a la esperada.
+- Las ambigüedades #1-3 de la entrega original siguen vigentes — en particular la
+  definición de "total del proyecto" (#1) es la más importante de confirmar, ya que si
+  está mal toda la cubicación de Gestión calcularía sobre una base distinta a la
+  esperada. #4 y #5 quedaron resueltas por el ajuste (ver arriba).
+- Si los 7 porcentajes por defecto deberían quedar fijos (no editables) — ver nota en
+  la sección del ajuste.
 - Una pasada visual con sesión real antes de dar el flujo por completamente cerrado.
-- Merge/push a `main` y deploy: quedan para Matías (comandos arriba).
+- Merge/push a `main` (segunda vez, con el ajuste encima) y deploy: quedan para Matías
+  (comandos arriba — el `git merge --ff-only` sigue siendo válido).

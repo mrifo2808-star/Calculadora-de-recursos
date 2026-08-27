@@ -18,38 +18,22 @@ export const PARAMETROS_DEFAULT: ParametrosCurso = {
   modalidad: 'Full',
 };
 
-/** Cargo cuyas HH se calculan como cantidad x factor(frecuencia) x hhUnitaria — el
- * modelo original de Gestion. */
-const cargoFijo = (cargo: string, cantidad: number, frecuencia: GestionRow['frecuencia'], hhUnitaria: number): GestionRow => ({
+/** Cargo de Gestion: sus HH son siempre un porcentaje fijo del total de HH de produccion
+ * del proyecto (ver calcularGestion/totalRecursosCurso en calc.ts). No existe otra
+ * modalidad — ni horas fijas, ni cantidad/frecuencia propias. */
+const cargoPorcentaje = (cargo: string, porcentaje: number, removable = false): GestionRow => ({
   rowId: nextId('g'),
   cargo,
-  tipo: 'fijo',
-  cantidad,
-  frecuencia,
-  hhUnitaria,
-  porcentaje: 0,
-  removable: false,
-  activa: true,
-});
-
-/** Cargo cuyas HH son un porcentaje fijo del total de HH de produccion del proyecto (ver
- * calcularGestion/totalRecursosCurso en calc.ts) — cantidad/frecuencia/hhUnitaria no
- * aplican, quedan en su valor neutro. */
-const cargoPorcentaje = (cargo: string, porcentaje: number): GestionRow => ({
-  rowId: nextId('g'),
-  cargo,
-  tipo: 'porcentaje',
-  cantidad: 1,
-  frecuencia: 'Fijo',
-  hhUnitaria: 0,
   porcentaje,
-  removable: false,
+  removable,
   activa: true,
 });
 
 /** Porcentajes de gestion sobre el total de HH de produccion del proyecto, definidos por
  * Matias el 27-08-2026: JP 30%, Senior (DI/DG/Sop) 20/5/5%, Jefes de Area (TL, uno por
- * DI/DG/Sop) 5% cada uno. Reemplaza el cargo "GE" (gestor), que se elimina del proyecto. */
+ * DI/DG/Sop) 5% cada uno. Reemplaza el cargo "GE" (gestor), que se elimina del proyecto.
+ * Ajuste del mismo dia: Gestion queda EXCLUSIVAMENTE en modo porcentaje — se quita
+ * "Bases Plantillas DG" (era de horas fijas, ya no tiene cabida en el modelo). */
 export const gestionDefault = (): GestionRow[] => [
   cargoPorcentaje('Gestion JP', 30),
   cargoPorcentaje('Gestion DI Senior', 20),
@@ -58,7 +42,6 @@ export const gestionDefault = (): GestionRow[] => [
   cargoPorcentaje('Gestion DI TL', 5),
   cargoPorcentaje('Gestion DG TL', 5),
   cargoPorcentaje('Gestion Sop TL', 5),
-  cargoFijo('Bases Plantillas DG', 1, 'Fijo', 12),
 ];
 
 /** Secciones fijas de Cubicacion, en el mismo orden que el Excel RC7. */
@@ -132,14 +115,6 @@ export const produccionDefault = (): ProduccionRow[] => [
 export const nuevaFilaProduccion = (seccion: string): ProduccionRow =>
   row(seccion, '', 1, 'Por curso', null, true);
 
-export const nuevaFilaGestion = (): GestionRow => ({
-  rowId: nextId('g'),
-  cargo: '',
-  tipo: 'fijo',
-  cantidad: 1,
-  frecuencia: 'Por semana',
-  hhUnitaria: 0,
-  porcentaje: 0,
-  removable: true,
-  activa: true,
-});
+/** Cargo nuevo agregado a mano ("+ Agregar cargo"): nace en 0% hasta que quien cubica
+ * escriba el nombre y el porcentaje que corresponda. */
+export const nuevaFilaGestion = (): GestionRow => cargoPorcentaje('', 0, true);

@@ -30,16 +30,15 @@ catalogar" y no suma horas. Se excluyeron del catálogo (respecto al RC7 origina
 recursos que no tenían ningún dato de tiempo DI/DG/SOP registrado ("Grafico plano" y
 "Animacion T3"): sin ese dato no aportan al cálculo y solo generaban filas en 0.
 
-Los cargos de "Gestión del proyecto" no consumen el catálogo de recursos y son de dos
-tipos (columna "Tipo" en la tabla de Gestión):
-
-- **Fijo**: misma fórmula de Factor que producción (Cantidad × Factor × HH unitaria),
-  con HH unitaria editable directamente. Ej. "Bases Plantillas DG".
-- **% Proyecto**: un porcentaje fijo del total de HH de producción del proyecto
-  (recursos de Cubicación en etapas activas, por curso — ver `totalRecursosCurso` en
-  `calc.ts`); no usa Cantidad/Frecuencia/HH unitaria y se recalcula solo cuando ese
-  total cambia. Los 7 cargos por defecto (JP 30%, DI/DG/Sop Senior 20/5/5%, DI/DG/Sop
-  TL 5% cada uno — definidos por Matías el 27-08-2026) son de este tipo.
+Los cargos de "Gestión del proyecto" no consumen el catálogo de recursos y son
+exclusivamente porcentuales: cada uno es un **% fijo del total de HH de producción**
+del proyecto (recursos de Cubicación en etapas activas, por curso — ver
+`totalRecursosCurso` en `calc.ts`) y se recalcula solo cuando ese total cambia. No hay
+cantidad, frecuencia ni HH unitaria propias de Gestión — ni una modalidad de horas
+fijas. Los 7 cargos por defecto (JP 30%, DI/DG/Sop Senior 20/5/5%, DI/DG/Sop TL 5% cada
+uno — definidos por Matías el 27-08-2026, ajuste el mismo día) se pueden desactivar
+(no eliminar) o editar su porcentaje; "+ Agregar cargo" suma uno nuevo con su propio
+nombre y porcentaje.
 
 ## Desarrollo local
 
