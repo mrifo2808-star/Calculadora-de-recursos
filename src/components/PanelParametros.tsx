@@ -20,6 +20,13 @@ interface Props {
   /** Reemplaza parametros/gestion/produccion en el estado global (App.tsx) — ya
    * confirmado por el usuario en el preview, listo para aplicar. */
   onImportado: (datos: { parametros: ParametrosCurso; gestion: GestionRow[]; produccion: ProduccionRow[] }) => void;
+  /** Este panel se renderiza en TODAS las vistas (Cubicación, Catálogo, Resumen,
+   * Instrucciones) porque los campos de parámetros (Proyecto/Cliente/etc.) son
+   * relevantes en cualquiera. Pero Exportar/Importar/Restaurar plantilla son acciones
+   * de la CUBICACIÓN — mostrarlas siempre, junto a los botones de Excel del Catálogo
+   * (otro dominio, ver PanelCatalogo.tsx), confunde cuál botón hace qué. Se muestran
+   * solo con la vista Cubicación activa. */
+  mostrarAcciones: boolean;
 }
 
 function PreviewImportacion({
@@ -83,6 +90,7 @@ export function PanelParametros({
   gestionActual,
   produccionActual,
   onImportado,
+  mostrarAcciones,
 }: Props) {
   const set = <K extends keyof ParametrosCurso>(key: K, value: ParametrosCurso[K]) =>
     onChange({ ...parametros, [key]: value });
@@ -136,21 +144,23 @@ export function PanelParametros({
     <section className="panel">
       <div className="panel__header">
         <h2>Parámetros del proyecto</h2>
-        <div className="panel__acciones">
-          <button type="button" className="btn-secundario" onClick={onExport} disabled={exportando}>
-            {exportando ? 'Generando…' : '⬇ Exportar a Excel'}
-          </button>
-          <button type="button" className="btn-secundario" onClick={elegirArchivo} disabled={importando}>
-            {importando ? 'Leyendo…' : '⬆ Importar desde Excel'}
-          </button>
-          <input ref={inputArchivoRef} type="file" accept=".xlsx" onChange={seleccionarArchivo} style={{ display: 'none' }} />
-          <button type="button" className="btn-secundario" onClick={onReset}>
-            Restaurar plantilla
-          </button>
-        </div>
+        {mostrarAcciones && (
+          <div className="panel__acciones">
+            <button type="button" className="btn-secundario" onClick={onExport} disabled={exportando}>
+              {exportando ? 'Generando…' : '⬇ Exportar a Excel'}
+            </button>
+            <button type="button" className="btn-secundario" onClick={elegirArchivo} disabled={importando}>
+              {importando ? 'Leyendo…' : '⬆ Importar desde Excel'}
+            </button>
+            <input ref={inputArchivoRef} type="file" accept=".xlsx" onChange={seleccionarArchivo} style={{ display: 'none' }} />
+            <button type="button" className="btn-secundario" onClick={onReset}>
+              Restaurar plantilla
+            </button>
+          </div>
+        )}
       </div>
 
-      {mensajeImport && (
+      {mostrarAcciones && mensajeImport && (
         <p
           className={`mensaje panel__hint ${mensajeImport.tipo === 'ok' ? 'panel__hint--ok' : 'panel__hint--aviso'}`}
           role={mensajeImport.tipo === 'error' ? 'alert' : 'status'}
@@ -198,6 +208,7 @@ export function PanelParametros({
         «N° semanas» define el Factor de las filas con Frecuencia «Por semana» (Factor = N° semanas). Las demás
         frecuencias usan Factor = 1.
       </p>
+      {mostrarAcciones && (
       <p className="panel__hint">
         «Importar desde Excel» reemplaza los datos actuales (parámetros, gestión y cubicación) con los de un
         archivo <code>.xlsx</code> exportado desde esta misma calculadora — útil para retomar una cubicación
@@ -206,6 +217,7 @@ export function PanelParametros({
         que estaban desactivadas al exportar no quedan en el archivo, así que al reimportar todas las etapas
         presentes vuelven a estar activas.
       </p>
+      )}
     </section>
   );
 }

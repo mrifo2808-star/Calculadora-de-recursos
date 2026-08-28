@@ -196,6 +196,7 @@ function App() {
         exportando={exportando}
         gestionActual={estado.gestion}
         produccionActual={estado.produccion}
+        mostrarAcciones={vista === 'cubicacion'}
         onImportado={(datos) =>
           setEstado((e) => ({
             ...e,

@@ -147,26 +147,44 @@ export function procesarLibroCatalogo(buffer: ArrayBuffer): ResultadoImportacion
   };
 }
 
-export async function catalogoDesdeArchivoExcel(archivo: File): Promise<ResultadoImportacionCatalogo> {
-  const buffer = await archivo.arrayBuffer();
-  return procesarLibroCatalogo(buffer);
-}
-
 /**
  * Trae el catalogo desde el Worker-proxy de Cloudflare que sirve el .xlsx compartido en
- * SharePoint (ver worker-catalogo/README.md) y lo procesa con `procesarLibroCatalogo` —
- * el MISMO parser que usa la carga manual de un archivo local: un solo formato de
- * columnas, nunca dos que se puedan desincronizar.
+ * SharePoint (ver worker-catalogo/README.md) y lo procesa con `procesarLibroCatalogo`.
+ *
+ * SharePoint es la ÚNICA vía de actualización del catálogo compartido (no existe carga
+ * manual de un Excel desde la UI): por eso cada punto de falla lanza un mensaje propio,
+ * concreto y accionable (qué revisar, y que se puede reintentar con «Actualizar
+ * catálogo») en vez de dejar pasar el error crudo de fetch/xlsx. Quien llama (
+ * CatalogContext.tsx) nunca toca el catálogo ya cargado antes de que esta función
+ * resuelva con éxito, así que cualquiera de estos throw deja la app usable con el último
+ * catálogo compartido, nunca en blanco.
  */
 export async function obtenerCatalogoDesdeSharePoint(forzar: boolean): Promise<ResultadoImportacionCatalogo> {
   if (!catalogoWorkerUrl) throw new Error('VITE_CATALOGO_WORKER_URL no está configurado en este build.');
 
-  const respuesta = await fetch(urlConForzado(catalogoWorkerUrl, forzar));
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(urlConForzado(catalogoWorkerUrl, forzar));
+  } catch {
+    throw new Error(
+      'No se pudo contactar el proxy de catálogo — revisa tu conexión a internet. El catálogo actual se mantiene sin cambios; puedes reintentar con «Actualizar catálogo».',
+    );
+  }
+
   if (!respuesta.ok) {
     const texto = await respuesta.text().catch(() => '');
-    throw new Error(`El proxy de catálogo respondió ${respuesta.status}${texto ? `: ${texto}` : '.'}`);
+    throw new Error(
+      `El proxy de catálogo respondió ${respuesta.status}${texto ? `: ${texto}` : '.'} ` +
+        'Reintenta en unos minutos con «Actualizar catálogo»; si el problema persiste, avisa a quien administra el Worker de catálogo (puede que el enlace de SharePoint haya vencido o cambiado de permisos).',
+    );
   }
 
   const buffer = await respuesta.arrayBuffer();
-  return procesarLibroCatalogo(buffer);
+  try {
+    return procesarLibroCatalogo(buffer);
+  } catch {
+    throw new Error(
+      'El archivo recibido no se pudo leer como Excel. El catálogo actual se mantiene sin cambios; reintenta con «Actualizar catálogo» y si persiste, avisa a quien administra el Worker de catálogo.',
+    );
+  }
 }

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { fmt } from '../format';
 import { useCatalog } from '../CatalogContext';
 import { useConfirm } from '../ConfirmModal';
@@ -27,7 +27,6 @@ export function PanelCatalogo() {
     cargando,
     error,
     fuenteRemota,
-    actualizarCatalogo,
     restaurarCatalogoOriginal,
     catalogoWorkerConfigurado,
     sincronizando,
@@ -40,9 +39,7 @@ export function PanelCatalogo() {
   const [soloValidados, setSoloValidados] = useState(true);
   const [mensajeImport, setMensajeImport] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [descargando, setDescargando] = useState(false);
-  const [subiendo, setSubiendo] = useState(false);
   const [restaurando, setRestaurando] = useState(false);
-  const inputArchivoRef = useRef<HTMLInputElement>(null);
 
   const filas = useMemo(() => {
     const q = filtro.trim().toLowerCase();
@@ -65,12 +62,12 @@ export function PanelCatalogo() {
     }
   };
 
-  const elegirArchivo = () => inputArchivoRef.current?.click();
-
   const restaurarOriginal = async () => {
     const ok = await confirmar(
-      'Esto reemplaza el catálogo COMPARTIDO por el de referencia del código, para TODO el equipo. ¿Continuar?',
-      { titulo: 'Restaurar catálogo original', textoConfirmar: 'Restaurar' },
+      'Esto reemplaza el catálogo COMPARTIDO por el catálogo de referencia incorporado en el código, para TODO el equipo. ' +
+        'Es una salida de emergencia — úsala solo si el catálogo compartido quedó en mal estado (por ejemplo, una sincronización con datos corruptos). ' +
+        'No reemplaza la actualización normal desde SharePoint. ¿Continuar?',
+      { titulo: 'Restaurar catálogo original (emergencia)', textoConfirmar: 'Restaurar' },
     );
     if (!ok) return;
     setRestaurando(true);
@@ -83,46 +80,11 @@ export function PanelCatalogo() {
     );
   };
 
-  const cargarArchivo = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const archivo = e.target.files?.[0];
-    e.target.value = ''; // permite volver a elegir el mismo archivo si se corrige y reintenta
-    if (!archivo) return;
-    setSubiendo(true);
-    try {
-      const { catalogoDesdeArchivoExcel } = await import('../excelCatalogo');
-      const resultado = await catalogoDesdeArchivoExcel(archivo);
-      if (resultado.filasValidas === 0) {
-        setMensajeImport({ tipo: 'error', texto: 'El archivo no tiene filas válidas (revisa columnas Tipo/Nombre visible).' });
-        return;
-      }
-      const ok = await confirmar(
-        `Esto actualiza ${resultado.filasValidas} recursos en el catálogo COMPARTIDO, para TODO el equipo. ¿Continuar?`,
-        { titulo: 'Cargar catálogo actualizado', textoConfirmar: 'Sincronizar' },
-      );
-      if (!ok) {
-        return;
-      }
-      const subida = await actualizarCatalogo(resultado.catalogo);
-      if (!subida.ok) {
-        setMensajeImport({ tipo: 'error', texto: `No se pudo sincronizar con el catálogo compartido: ${subida.error}` });
-        return;
-      }
-      const partes = [`${resultado.filasValidas} recursos sincronizados de ${resultado.filasLeidas} filas leídas.`];
-      if (resultado.duplicadosFusionados > 0) partes.push(`${resultado.duplicadosFusionados} filas con ID repetido se fusionaron (quedó la última).`);
-      if (resultado.erroresFila.length > 0) partes.push(`${resultado.erroresFila.length} advertencias: ${resultado.erroresFila.slice(0, 3).join(' ')}`);
-      setMensajeImport({ tipo: resultado.erroresFila.length > 0 ? 'error' : 'ok', texto: partes.join(' ') });
-    } catch {
-      setMensajeImport({ tipo: 'error', texto: 'No se pudo leer el archivo. Verifica que sea un .xlsx exportado desde aquí o con las mismas columnas.' });
-    } finally {
-      setSubiendo(false);
-    }
-  };
-
   const actualizarDesdeSharePoint = async () => {
     await sincronizarDesdeSharePoint(true);
   };
 
-  const accionesDeshabilitadas = !fuenteRemota || subiendo || restaurando;
+  const accionesDeshabilitadas = !fuenteRemota || restaurando;
 
   return (
     <section className="panel">
@@ -135,28 +97,20 @@ export function PanelCatalogo() {
             </button>
           )}
           <button type="button" className="btn-secundario" onClick={restaurarOriginal} disabled={accionesDeshabilitadas}>
-            {restaurando ? 'Restaurando…' : 'Restaurar catálogo original'}
-          </button>
-          <button type="button" className="btn-secundario" onClick={elegirArchivo} disabled={accionesDeshabilitadas}>
-            {subiendo ? 'Sincronizando…' : '⬆ Cargar catálogo actualizado (Excel)'}
+            {restaurando ? 'Restaurando…' : '⚠ Restaurar catálogo original (emergencia)'}
           </button>
           <button type="button" className="btn-secundario" onClick={descargar} disabled={descargando}>
             {descargando ? 'Generando…' : '⬇ Descargar catálogo (Excel)'}
           </button>
-          <input
-            ref={inputArchivoRef}
-            type="file"
-            accept=".xlsx"
-            onChange={cargarArchivo}
-            style={{ display: 'none' }}
-          />
         </div>
       </div>
       <p className="panel__hint">
         Fuente de verdad de tarifas (horas). Solo <strong>Validado</strong> es seleccionable en Cubicación (
         {validados} de {catalogo.length} recursos). Pendiente/Histórico quedan como referencia.
-        {catalogoWorkerConfigurado &&
-          ' El catálogo compartido se sincroniza solo desde el Excel de SharePoint cada ~12 h; «Actualizar catálogo» lo fuerza ahora mismo.'}
+        {catalogoWorkerConfigurado
+          ? ' El catálogo compartido se sincroniza solo desde el Excel de SharePoint cada ~12 h; «Actualizar catálogo» lo fuerza ahora mismo. Ya no hay carga manual de un Excel: SharePoint es la única vía de actualización.'
+          : ' Este build no tiene configurada la sincronización con SharePoint (falta VITE_CATALOGO_WORKER_URL).'}
+        {' '}«Descargar catálogo» solo genera una copia de lectura, no lo actualiza.
       </p>
       {cargando && (
         <p className="panel__hint" role="status">
@@ -180,7 +134,7 @@ export function PanelCatalogo() {
       )}
       {catalogoWorkerConfigurado && errorSincronizacion && !sincronizando && (
         <p className="panel__hint panel__hint--aviso" role="alert">
-          No se pudo sincronizar desde SharePoint: {errorSincronizacion}
+          {errorSincronizacion} El catálogo que ves abajo es el último cargado con éxito, no se vació.
         </p>
       )}
       {catalogoWorkerConfigurado && !sincronizando && !errorSincronizacion && ultimaSincronizacion && (

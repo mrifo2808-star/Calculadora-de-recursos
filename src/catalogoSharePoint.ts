@@ -74,9 +74,10 @@ export interface ChequeoSeguridad {
  * actual (< 50%), probablemente está vacío/roto/a medio editar — no se aplica solo,
  * para no borrar el catálogo compartido sin que nadie lo apruebe. Aplica tanto a la
  * sincronización automática como a la manual («Actualizar catálogo»): ninguna de las
- * dos pasa por un diálogo de confirmación (a diferencia de «Cargar catálogo Excel», que
- * sí lo tiene porque ahí el archivo lo elige la persona a mano), así que este chequeo es
- * la única red de seguridad para el camino de SharePoint. */
+ * dos pasa por un diálogo de confirmación, y no existe una carga manual de Excel como
+ * alternativa (SharePoint es la ÚNICA vía de actualización) — así que este chequeo es la
+ * única red de seguridad del catálogo compartido. Si dispara, corresponde arreglar el
+ * archivo de SharePoint (no hay forma de "forzarlo" desde la UI a propósito). */
 export function chequearTamanoRazonable(actual: number, nuevo: number): ChequeoSeguridad {
   if (nuevo === 0) {
     return { ok: false, motivo: 'El archivo de SharePoint no tiene filas válidas — no se aplicó nada.' };
@@ -86,7 +87,7 @@ export function chequearTamanoRazonable(actual: number, nuevo: number): ChequeoS
       ok: false,
       motivo:
         `El archivo de SharePoint trae muchas menos filas (${nuevo}) que el catálogo actual (${actual}) — ` +
-        'parece incompleto, no se aplicó por seguridad. Si es intencional, usa «Cargar catálogo actualizado» para forzarlo a mano.',
+        'parece incompleto, no se aplicó por seguridad. Revisa y corrige el archivo en SharePoint (puede estar a medio editar) y reintenta con «Actualizar catálogo».',
     };
   }
   return { ok: true };

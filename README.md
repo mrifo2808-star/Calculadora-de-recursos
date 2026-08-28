@@ -120,38 +120,43 @@ de dejar pasar a cualquiera — nunca hace fallback silencioso a "sin login".
 - **Login**: pantalla de acceso pide solo la clave (el email de equipo va fijo en el
   código, no es un dato secreto). La sesión persiste en el dispositivo hasta "Cerrar
   sesión" (footer de la app).
-- **Catálogo compartido**: en la pestaña "Catálogo", **⬆ Cargar catálogo actualizado
-  (Excel)** ahora sube (upsert) las filas a Supabase — el cambio lo ven todos al instante,
-  no solo quien lo sube. **Restaurar catálogo original** reemplaza TODO el catálogo
-  compartido por `CATALOGO_BASE` (con confirmación, porque afecta a todo el equipo).
-  **⬇ Descargar catálogo (Excel)** sigue siendo una exportación normal, sin tocar nada.
+- **Catálogo compartido**: en la pestaña "Catálogo", la única forma de traer cambios es
+  **🔄 Actualizar catálogo (SharePoint)** (ver sección siguiente) — no existe una carga
+  manual de Excel. **Restaurar catálogo original** es una salida de emergencia: reemplaza
+  TODO el catálogo compartido por `CATALOGO_BASE` (con confirmación, porque afecta a todo
+  el equipo) — úsalo solo si el catálogo compartido quedó en mal estado, no como forma
+  habitual de actualizarlo. **⬇ Descargar catálogo (Excel)** es una exportación de solo
+  lectura, no lo actualiza.
 - Si Supabase no responde (caído, sin internet), la app muestra un aviso y cae de vuelta a
   `CATALOGO_BASE` como referencia de solo lectura — nunca se rompe silenciosamente.
 
-### Sincronización automática del catálogo desde SharePoint
+### Sincronización del catálogo desde SharePoint (única vía de actualización)
 
-Además del flujo manual (Excel ↕), el catálogo puede mantenerse al día solo desde un
-`.xlsx` compartido en SharePoint — el mismo que se descarga con **⬇ Descargar catálogo
-(Excel)** (mismas columnas). SharePoint no permite leerlo por `fetch()` desde otro
-origen (CORS), así que hay un Cloudflare Worker de por medio (`worker-catalogo/`, ver su
-`README.md`) que descarga el archivo, lo cachea ~12 h y lo sirve con CORS acotado al
-origen de esta app.
+El catálogo se mantiene al día desde un `.xlsx` compartido en SharePoint — el mismo
+formato de columnas que exporta **⬇ Descargar catálogo (Excel)**. SharePoint no permite
+leerlo por `fetch()` desde otro origen (CORS), así que hay un Cloudflare Worker de por
+medio (`worker-catalogo/`, ver su `README.md`) que descarga el archivo, lo cachea ~12 h y
+lo sirve con CORS acotado al origen de esta app.
 
 - **Automático**: al abrir la app, si pasaron más de 12 h desde la última sincronización
   (por navegador), se sincroniza sola en segundo plano — sin diálogo, sin bloquear nada.
   Si el Worker no está configurado (`VITE_CATALOGO_WORKER_URL` vacío) o falla, la app
-  sigue funcionando igual con lo que ya tenía cargado.
+  sigue funcionando igual con el catálogo que ya tenía cargado (nunca queda en blanco).
 - **Manual**: botón **🔄 Actualizar catálogo (SharePoint)** en la pestaña Catálogo (solo
   aparece si `VITE_CATALOGO_WORKER_URL` está configurado) — fuerza el refresco ahora
-  mismo, saltando el caché de 12 h del Worker.
-- **Reemplaza** el catálogo compartido completo (a diferencia de la carga manual de
-  Excel, que solo agrega/actualiza) — para que SharePoint sea de verdad la fuente de la
-  verdad y un recurso descontinuado ahí también desaparezca acá. Como resguardo, un
-  archivo con 0 filas válidas o con muchas menos que el catálogo actual (< 50%) **no se
-  aplica** (ver `chequearTamanoRazonable` en `src/catalogoSharePoint.ts`) — evita que un
-  archivo vacío o a medio editar borre el catálogo del equipo sin que nadie lo revise.
-- El import manual de Excel **sigue existiendo tal cual**, como respaldo si el Worker no
-  está disponible o si se necesita cargar un archivo que no es el de SharePoint.
+  mismo, saltando el caché de 12 h del Worker. Es también el botón de "reintentar" si una
+  sincronización falló: el error queda visible con un mensaje accionable (qué revisar) y
+  el catálogo actual no se toca hasta que una sincronización nueva termine con éxito.
+- **Reemplaza** el catálogo compartido completo — para que SharePoint sea de verdad la
+  fuente de la verdad y un recurso descontinuado ahí también desaparezca acá. Como
+  resguardo, un archivo con 0 filas válidas o con muchas menos que el catálogo actual
+  (< 50%) **no se aplica** (ver `chequearTamanoRazonable` en `src/catalogoSharePoint.ts`)
+  — evita que un archivo vacío o a medio editar borre el catálogo del equipo sin que
+  nadie lo revise. Si dispara, corresponde corregir el archivo en SharePoint (no hay
+  forma de forzarlo a mano desde la UI, a propósito).
+- No existe una carga manual de Excel como alternativa: si el Worker no responde, la
+  única salida de emergencia es **Restaurar catálogo original** (vuelve a `CATALOGO_BASE`,
+  no al último Excel de SharePoint) o corregir el archivo/Worker y reintentar.
 - Ver `worker-catalogo/README.md` para desplegar el Worker (Cloudflare) y el `VALIDAR-*.md`
   de esta entrega para el paso a paso completo.
 

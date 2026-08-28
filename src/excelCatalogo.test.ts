@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as XLSX from 'xlsx';
-import { obtenerCatalogoDesdeSharePoint, procesarLibroCatalogo } from './excelCatalogo';
+import { procesarLibroCatalogo } from './excelCatalogo';
 
 /** Arma un .xlsx en memoria con las mismas columnas que descargarCatalogoExcel, para
  * probar procesarLibroCatalogo sin pasar por el DOM (File) — mismo patron que
@@ -80,19 +80,75 @@ describe('procesarLibroCatalogo — filas', () => {
   });
 });
 
-describe('obtenerCatalogoDesdeSharePoint', () => {
+/**
+ * `catalogoWorkerUrl` se mockea explicitamente en TODOS estos casos (en vez de confiar
+ * en que el `.env` de este checkout no tenga VITE_CATALOGO_WORKER_URL) porque ese
+ * archivo SI se commitea a este repo (ver README.md) y de hecho ya trae un valor real
+ * en main — un test que dependiera del `.env` ambiente para simular "no configurado"
+ * quedaria roto en cualquier checkout con `.env` completo, que es el caso normal.
+ */
+async function importarConUrl(url: string | undefined) {
+  vi.resetModules();
+  vi.doMock('./catalogoSharePoint', async () => {
+    const real = await vi.importActual<typeof import('./catalogoSharePoint')>('./catalogoSharePoint');
+    return { ...real, catalogoWorkerUrl: url };
+  });
+  return import('./excelCatalogo');
+}
+
+describe('obtenerCatalogoDesdeSharePoint — sin URL configurada', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.doUnmock('./catalogoSharePoint');
+    vi.resetModules();
   });
 
-  it('lanza un error claro si VITE_CATALOGO_WORKER_URL no esta configurado (estado real de este build de pruebas, sin .env)', async () => {
-    await expect(obtenerCatalogoDesdeSharePoint(false)).rejects.toThrow(/VITE_CATALOGO_WORKER_URL/);
+  it('lanza un error claro si VITE_CATALOGO_WORKER_URL no esta configurado', async () => {
+    const { obtenerCatalogoDesdeSharePoint: obtener } = await importarConUrl(undefined);
+    await expect(obtener(false)).rejects.toThrow(/VITE_CATALOGO_WORKER_URL/);
   });
 
   it('nunca llega a llamar fetch si la URL no esta configurada', async () => {
+    const { obtenerCatalogoDesdeSharePoint: obtener } = await importarConUrl(undefined);
     const fetchEspiado = vi.fn();
     vi.stubGlobal('fetch', fetchEspiado);
-    await expect(obtenerCatalogoDesdeSharePoint(false)).rejects.toThrow();
+    await expect(obtener(false)).rejects.toThrow();
     expect(fetchEspiado).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * SharePoint es la UNICA via de actualizacion del catalogo (no hay carga manual de
+ * Excel como respaldo): estos casos verifican que cada punto de falla de
+ * obtenerCatalogoDesdeSharePoint da un mensaje accionable en vez de propagar el error
+ * crudo de fetch/xlsx, y que la app nunca se queda sin saber que reintentar.
+ */
+describe('obtenerCatalogoDesdeSharePoint — mensajes de falla (URL configurada)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.doUnmock('./catalogoSharePoint');
+    vi.resetModules();
+  });
+
+  const URL_PROXY = 'https://proxy.example.com/catalogo.xlsx';
+
+  it('da un mensaje claro (no el error crudo) si fetch falla por conectividad', async () => {
+    const { obtenerCatalogoDesdeSharePoint: obtener } = await importarConUrl(URL_PROXY);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    await expect(obtener(false)).rejects.toThrow(/no se pudo contactar.*conexión a internet/i);
+  });
+
+  it('da un mensaje claro y menciona reintentar si el Worker responde con un status de error', async () => {
+    const { obtenerCatalogoDesdeSharePoint: obtener } = await importarConUrl(URL_PROXY);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('SharePoint respondio 403', { status: 502 })));
+    await expect(obtener(false)).rejects.toThrow(/502/);
+    await expect(obtener(false)).rejects.toThrow(/reintenta/i);
+  });
+
+  it('da un mensaje claro si la respuesta no se puede leer como Excel (ej. una pagina HTML de error/login)', async () => {
+    const { obtenerCatalogoDesdeSharePoint: obtener } = await importarConUrl(URL_PROXY);
+    const html = '<!DOCTYPE html><html><body>Inicia sesion para continuar</body></html>';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(html, { status: 200 })));
+    await expect(obtener(false)).rejects.toThrow(/no se pudo leer como excel/i);
   });
 });

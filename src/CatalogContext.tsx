@@ -66,9 +66,9 @@ interface CatalogContextValue {
   error: string | null;
   /** true si `catalogo` viene de Supabase (compartido y en vivo); false si es el respaldo local. */
   fuenteRemota: boolean;
-  /** Sube/actualiza filas en el catalogo compartido (no borra las que falten en `filas`). */
-  actualizarCatalogo: (filas: RecursoCatalogo[]) => Promise<ResultadoOperacion>;
-  /** Reemplaza TODO el catalogo compartido por el set incorporado en el codigo (CATALOGO_BASE). */
+  /** Reemplaza TODO el catalogo compartido por el set incorporado en el codigo
+   * (CATALOGO_BASE) — salida de emergencia si el catalogo compartido queda en mal
+   * estado; no es la via normal de actualizacion (esa es `sincronizarDesdeSharePoint`). */
   restaurarCatalogoOriginal: () => Promise<ResultadoOperacion>;
   /** true si esta build tiene el proxy de SharePoint configurado (VITE_CATALOGO_WORKER_URL). */
   catalogoWorkerConfigurado: boolean;
@@ -131,13 +131,6 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       activo = false;
       supabase.removeChannel(canal);
     };
-  }, []);
-
-  const actualizarCatalogo = useCallback(async (filas: RecursoCatalogo[]): Promise<ResultadoOperacion> => {
-    if (!supabaseConfigurado) return { ok: false, error: 'Supabase no está configurado en este build.' };
-    const { error: errorUpsert } = await supabase.from('catalogo_recursos').upsert(filas.map(recursoAFilaDB));
-    if (errorUpsert) return { ok: false, error: errorUpsert.message };
-    return { ok: true };
   }, []);
 
   // Compartido por "Restaurar catálogo original" (usa CATALOGO_BASE) y por la
@@ -227,7 +220,6 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       cargando,
       error,
       fuenteRemota,
-      actualizarCatalogo,
       restaurarCatalogoOriginal,
       catalogoWorkerConfigurado,
       sincronizando,
@@ -240,7 +232,6 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       cargando,
       error,
       fuenteRemota,
-      actualizarCatalogo,
       restaurarCatalogoOriginal,
       sincronizando,
       ultimaSincronizacion,
