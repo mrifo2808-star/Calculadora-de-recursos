@@ -96,9 +96,6 @@ export function PanelCatalogo() {
               {sincronizando ? 'Sincronizando…' : '🔄 Actualizar catálogo (SharePoint)'}
             </button>
           )}
-          <button type="button" className="btn-secundario" onClick={restaurarOriginal} disabled={accionesDeshabilitadas}>
-            {restaurando ? 'Restaurando…' : '⚠ Restaurar catálogo original (emergencia)'}
-          </button>
           <button type="button" className="btn-secundario" onClick={descargar} disabled={descargando}>
             {descargando ? 'Generando…' : '⬇ Descargar catálogo (Excel)'}
           </button>
@@ -206,6 +203,18 @@ export function PanelCatalogo() {
           </tbody>
         </table>
       </div>
+      <details className="catalogo-emergencia">
+        <summary>Opciones de emergencia</summary>
+        <p className="panel__hint panel__hint--aviso">
+          «Restaurar catálogo original» reemplaza el catálogo COMPARTIDO por el catálogo de referencia incorporado en
+          el código, para TODO el equipo. Es una salida de emergencia — úsala solo si el catálogo compartido quedó en
+          mal estado (por ejemplo, una sincronización con datos corruptos). No reemplaza la actualización normal
+          desde SharePoint.
+        </p>
+        <button type="button" className="btn-secundario" onClick={restaurarOriginal} disabled={accionesDeshabilitadas}>
+          {restaurando ? 'Restaurando…' : '⚠ Restaurar catálogo original'}
+        </button>
+      </details>
     </section>
   );
 }

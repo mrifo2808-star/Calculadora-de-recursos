@@ -4,6 +4,28 @@ Rama: `claude/catalogo-solo-sharepoint-20260828` (pusheada, no mergeada — el m
 a `main` lo hace Matías). Sobre `main` @ `38a2156` (Worker de SharePoint ya desplegado y
 `VITE_CATALOGO_WORKER_URL` ya en `.env`).
 
+## Actualización (mismo día): "Restaurar catálogo original" pasó a desplegable oculto
+
+Respuesta de Matías al punto 2 de más abajo: mantenerlo, pero "al final y como botón
+desplegable, muy oculto". Cambio aplicado en el mismo commit de la rama:
+
+- Se sacó del `panel__acciones` de arriba (donde competía visualmente con Actualizar
+  SharePoint / Descargar).
+- Ahora vive dentro de un `<details className="catalogo-emergencia">` al final de la
+  pestaña Catálogo, después de la tabla — colapsado por defecto, con el rótulo discreto
+  "Opciones de emergencia" (12px, color `--muted`, marcador ▸/▾). Adentro: el texto de
+  advertencia (qué es, por qué es una salida de emergencia) y el botón
+  "⚠ Restaurar catálogo original".
+- Foco/teclado/ARIA: es el elemento `<details>/<summary>` nativo del navegador — el
+  toggle con Enter/Espacio, el foco visible y el estado expandido/colapsado para lectores
+  de pantalla ya vienen del navegador, no se reimplementó nada a mano. Solo se agregó un
+  `outline` visible en `:focus-visible` del `summary` (CSS en `App.css`,
+  `.catalogo-emergencia`).
+- El diálogo de confirmación reforzado (título "Restaurar catálogo original
+  (emergencia)", texto explicando que es una salida de emergencia) sigue exactamente
+  igual — no cambió, solo cambió dónde vive el botón que lo dispara.
+- Verificado: 65/65 tests, `npm run build` y `npm run lint` sin errores nuevos.
+
 ## Qué pediste
 
 > "no será mejor sacar los otros botones? de carga de archivos... dejar solo el de
@@ -139,9 +161,11 @@ Cubicación (ver punto 3), no un cambio de comportamiento.
 ## Cómo verificar (< 10 min)
 
 1. `git checkout claude/catalogo-solo-sharepoint-20260828 && npm install && npm run dev`
-2. Pestaña **Catálogo**: confirmar que solo aparecen 3 botones —
-   `🔄 Actualizar catálogo (SharePoint)`, `⚠ Restaurar catálogo original (emergencia)`,
-   `⬇ Descargar catálogo (Excel)` — y que NO hay ningún botón de subir archivo.
+2. Pestaña **Catálogo**: arriba solo deben verse 2 botones — `🔄 Actualizar catálogo
+   (SharePoint)` y `⬇ Descargar catálogo (Excel)` — sin ningún botón de subir archivo.
+   Al final de la pestaña, después de la tabla, debe verse un desplegable colapsado
+   "Opciones de emergencia"; al abrirlo (click o Enter/Espacio con foco en él) aparece
+   el texto de advertencia y el botón "⚠ Restaurar catálogo original".
 3. Con la pestaña **Catálogo** activa, confirmar que NO se ve el panel de "Parámetros
    del proyecto" con sus botones de Excel (ese panel debe verse SIN botones, solo el
    título "Parámetros del proyecto" — los campos de Proyecto/Cliente/etc. si están, más
@@ -181,9 +205,8 @@ mergees. Si ya la mergeaste y quieres deshacerla: `git revert <hash-del-merge>` 
 commit nuevo que deshace el cambio, no reescribe historia).
 
 ## Pendiente / a tu criterio
-1. **Validar la decisión de mantener "Restaurar catálogo original"** (punto 2 arriba) —
-   o pedir que se retire si prefieres forzar que cualquier arreglo pase por Supabase
-   directo.
+1. ~~Validar la decisión de mantener "Restaurar catálogo original"~~ — resuelto: pediste
+   mantenerlo como desplegable oculto al final (ver "Actualización" arriba).
 2. **Validar el ocultamiento de los botones de Cubicación fuera de su pestaña** (punto
    3) — en particular si "Restaurar plantilla" debería seguir visible siempre.
 3. Sigue abierto (no es parte de este encargo): el catálogo triplicado (Excel RC7 /

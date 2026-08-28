@@ -661,6 +661,56 @@ button:focus-visible {
   font-size: 14px;
 }
 
+/* Disclosure nativo (<details>): foco, teclado (Enter/Espacio) y el estado
+   expandido/colapsado los maneja el navegador solo — no se reinventa nada. Se
+   usa a proposito para "Restaurar catalogo original": una accion de emergencia
+   que no debe competir visualmente con Actualizar/Descargar ni pulsarse por
+   accidente (ver VALIDAR-catalogo-solo-sharepoint-20260828.md). */
+.catalogo-emergencia {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.catalogo-emergencia summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  list-style: none;
+  width: fit-content;
+}
+
+.catalogo-emergencia summary::-webkit-details-marker {
+  display: none;
+}
+
+.catalogo-emergencia summary::before {
+  content: '▸ ';
+}
+
+.catalogo-emergencia[open] summary::before {
+  content: '▾ ';
+}
+
+.catalogo-emergencia summary:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.catalogo-emergencia[open] {
+  padding-bottom: 4px;
+}
+
+.catalogo-emergencia > p {
+  margin-top: 10px;
+  max-width: 60ch;
+}
+
+.catalogo-emergencia > button {
+  margin-top: 8px;
+}
+
 @media (max-width: 640px) {
   .app__header {
     flex-direction: column;
