@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { EstadoCatalogo, RecursoCatalogo } from './types';
+import { catalogoWorkerUrl, urlConForzado } from './catalogoSharePoint';
 
 const HOJA = 'Catalogo';
 const COLUMNAS = [
@@ -84,13 +85,15 @@ function generarId(tipo: string, nombre: string, extension: string, usados: Set<
 }
 
 /**
- * Lee un .xlsx (mismas columnas que descargarCatalogoExcel) y lo convierte en un
- * catalogo valido. Filas sin Tipo/Nombre visible se descartan; IDs repetidos se
- * fusionan quedandose con la ULTIMA fila del archivo (permite "corregir" una fila
- * agregando otra mas abajo con el mismo ID tecnico).
+ * Nucleo de la lectura, separado de la fuente del archivo (File del input local, o los
+ * bytes que trae el Worker-proxy de SharePoint — ver src/catalogoSharePoint.ts) para
+ * que ambos caminos usen EXACTAMENTE el mismo parser y nunca puedan desincronizarse en
+ * el formato de columnas. Mismas columnas que descargarCatalogoExcel. Filas sin Tipo/
+ * Nombre visible se descartan; IDs repetidos se fusionan quedandose con la ULTIMA fila
+ * del archivo (permite "corregir" una fila agregando otra mas abajo con el mismo ID
+ * tecnico).
  */
-export async function catalogoDesdeArchivoExcel(archivo: File): Promise<ResultadoImportacionCatalogo> {
-  const buffer = await archivo.arrayBuffer();
+export function procesarLibroCatalogo(buffer: ArrayBuffer): ResultadoImportacionCatalogo {
   const libro = XLSX.read(buffer, { type: 'array' });
   const nombreHoja = libro.SheetNames.includes(HOJA) ? HOJA : libro.SheetNames[0];
   const hoja = libro.Sheets[nombreHoja];
@@ -142,4 +145,28 @@ export async function catalogoDesdeArchivoExcel(archivo: File): Promise<Resultad
     duplicadosFusionados,
     erroresFila,
   };
+}
+
+export async function catalogoDesdeArchivoExcel(archivo: File): Promise<ResultadoImportacionCatalogo> {
+  const buffer = await archivo.arrayBuffer();
+  return procesarLibroCatalogo(buffer);
+}
+
+/**
+ * Trae el catalogo desde el Worker-proxy de Cloudflare que sirve el .xlsx compartido en
+ * SharePoint (ver worker-catalogo/README.md) y lo procesa con `procesarLibroCatalogo` —
+ * el MISMO parser que usa la carga manual de un archivo local: un solo formato de
+ * columnas, nunca dos que se puedan desincronizar.
+ */
+export async function obtenerCatalogoDesdeSharePoint(forzar: boolean): Promise<ResultadoImportacionCatalogo> {
+  if (!catalogoWorkerUrl) throw new Error('VITE_CATALOGO_WORKER_URL no está configurado en este build.');
+
+  const respuesta = await fetch(urlConForzado(catalogoWorkerUrl, forzar));
+  if (!respuesta.ok) {
+    const texto = await respuesta.text().catch(() => '');
+    throw new Error(`El proxy de catálogo respondió ${respuesta.status}${texto ? `: ${texto}` : '.'}`);
+  }
+
+  const buffer = await respuesta.arrayBuffer();
+  return procesarLibroCatalogo(buffer);
 }

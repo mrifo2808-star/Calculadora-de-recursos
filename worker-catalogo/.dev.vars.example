@@ -1,0 +1,8 @@
+# Copiar a ".dev.vars" (mismo directorio) y completar con la URL real de SharePoint
+# para poder correr `npm run dev` en local. ".dev.vars" esta en .gitignore — nunca se
+# commitea. En produccion esta URL se carga como secret con:
+#   wrangler secret put CATALOGO_XLSX_URL
+# (ver README.md de esta carpeta) — nunca va en wrangler.jsonc ni en ningun archivo
+# versionado.
+
+CATALOGO_XLSX_URL="https://tu-tenant-my.sharepoint.com/:x:/g/personal/....xlsx?e=xxxxxx"

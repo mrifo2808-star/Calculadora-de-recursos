@@ -9,8 +9,32 @@ const estadoClase: Record<string, string> = {
   Historico: 'pill pill--vacia',
 };
 
+/** "hace 5 min" / "hace 3 h" / "hace 2 d" — sin librería, solo lo que necesita este panel. */
+function haceTiempo(fecha: Date): string {
+  const segundos = Math.max(0, (Date.now() - fecha.getTime()) / 1000);
+  if (segundos < 60) return 'hace un momento';
+  const minutos = Math.round(segundos / 60);
+  if (minutos < 60) return `hace ${minutos} min`;
+  const horas = Math.round(minutos / 60);
+  if (horas < 24) return `hace ${horas} h`;
+  const dias = Math.round(horas / 24);
+  return `hace ${dias} d`;
+}
+
 export function PanelCatalogo() {
-  const { catalogo, cargando, error, fuenteRemota, actualizarCatalogo, restaurarCatalogoOriginal } = useCatalog();
+  const {
+    catalogo,
+    cargando,
+    error,
+    fuenteRemota,
+    actualizarCatalogo,
+    restaurarCatalogoOriginal,
+    catalogoWorkerConfigurado,
+    sincronizando,
+    ultimaSincronizacion,
+    errorSincronizacion,
+    sincronizarDesdeSharePoint,
+  } = useCatalog();
   const confirmar = useConfirm();
   const [filtro, setFiltro] = useState('');
   const [soloValidados, setSoloValidados] = useState(true);
@@ -94,6 +118,10 @@ export function PanelCatalogo() {
     }
   };
 
+  const actualizarDesdeSharePoint = async () => {
+    await sincronizarDesdeSharePoint(true);
+  };
+
   const accionesDeshabilitadas = !fuenteRemota || subiendo || restaurando;
 
   return (
@@ -101,6 +129,11 @@ export function PanelCatalogo() {
       <div className="panel__header">
         <h2>Catálogo de tasas DI / DG / SOP</h2>
         <div className="panel__acciones">
+          {catalogoWorkerConfigurado && (
+            <button type="button" className="btn-secundario" onClick={actualizarDesdeSharePoint} disabled={accionesDeshabilitadas || sincronizando}>
+              {sincronizando ? 'Sincronizando…' : '🔄 Actualizar catálogo (SharePoint)'}
+            </button>
+          )}
           <button type="button" className="btn-secundario" onClick={restaurarOriginal} disabled={accionesDeshabilitadas}>
             {restaurando ? 'Restaurando…' : 'Restaurar catálogo original'}
           </button>
@@ -122,6 +155,8 @@ export function PanelCatalogo() {
       <p className="panel__hint">
         Fuente de verdad de tarifas (horas). Solo <strong>Validado</strong> es seleccionable en Cubicación (
         {validados} de {catalogo.length} recursos). Pendiente/Histórico quedan como referencia.
+        {catalogoWorkerConfigurado &&
+          ' El catálogo compartido se sincroniza solo desde el Excel de SharePoint cada ~12 h; «Actualizar catálogo» lo fuerza ahora mismo.'}
       </p>
       {cargando && (
         <p className="panel__hint" role="status">
@@ -136,6 +171,21 @@ export function PanelCatalogo() {
       {!cargando && !error && fuenteRemota && (
         <p className="panel__hint panel__hint--ok" role="status">
           Catálogo sincronizado en vivo con el equipo (Supabase). Un cambio acá lo ven todos al instante.
+        </p>
+      )}
+      {catalogoWorkerConfigurado && sincronizando && (
+        <p className="panel__hint" role="status">
+          Sincronizando catálogo desde SharePoint…
+        </p>
+      )}
+      {catalogoWorkerConfigurado && errorSincronizacion && !sincronizando && (
+        <p className="panel__hint panel__hint--aviso" role="alert">
+          No se pudo sincronizar desde SharePoint: {errorSincronizacion}
+        </p>
+      )}
+      {catalogoWorkerConfigurado && !sincronizando && !errorSincronizacion && ultimaSincronizacion && (
+        <p className="panel__hint panel__hint--ok" role="status">
+          Última actualización desde SharePoint: {haceTiempo(ultimaSincronizacion)}.
         </p>
       )}
       {mensajeImport && (

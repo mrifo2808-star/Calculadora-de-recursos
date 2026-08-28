@@ -128,6 +128,33 @@ de dejar pasar a cualquiera — nunca hace fallback silencioso a "sin login".
 - Si Supabase no responde (caído, sin internet), la app muestra un aviso y cae de vuelta a
   `CATALOGO_BASE` como referencia de solo lectura — nunca se rompe silenciosamente.
 
+### Sincronización automática del catálogo desde SharePoint
+
+Además del flujo manual (Excel ↕), el catálogo puede mantenerse al día solo desde un
+`.xlsx` compartido en SharePoint — el mismo que se descarga con **⬇ Descargar catálogo
+(Excel)** (mismas columnas). SharePoint no permite leerlo por `fetch()` desde otro
+origen (CORS), así que hay un Cloudflare Worker de por medio (`worker-catalogo/`, ver su
+`README.md`) que descarga el archivo, lo cachea ~12 h y lo sirve con CORS acotado al
+origen de esta app.
+
+- **Automático**: al abrir la app, si pasaron más de 12 h desde la última sincronización
+  (por navegador), se sincroniza sola en segundo plano — sin diálogo, sin bloquear nada.
+  Si el Worker no está configurado (`VITE_CATALOGO_WORKER_URL` vacío) o falla, la app
+  sigue funcionando igual con lo que ya tenía cargado.
+- **Manual**: botón **🔄 Actualizar catálogo (SharePoint)** en la pestaña Catálogo (solo
+  aparece si `VITE_CATALOGO_WORKER_URL` está configurado) — fuerza el refresco ahora
+  mismo, saltando el caché de 12 h del Worker.
+- **Reemplaza** el catálogo compartido completo (a diferencia de la carga manual de
+  Excel, que solo agrega/actualiza) — para que SharePoint sea de verdad la fuente de la
+  verdad y un recurso descontinuado ahí también desaparezca acá. Como resguardo, un
+  archivo con 0 filas válidas o con muchas menos que el catálogo actual (< 50%) **no se
+  aplica** (ver `chequearTamanoRazonable` en `src/catalogoSharePoint.ts`) — evita que un
+  archivo vacío o a medio editar borre el catálogo del equipo sin que nadie lo revise.
+- El import manual de Excel **sigue existiendo tal cual**, como respaldo si el Worker no
+  está disponible o si se necesita cargar un archivo que no es el de SharePoint.
+- Ver `worker-catalogo/README.md` para desplegar el Worker (Cloudflare) y el `VALIDAR-*.md`
+  de esta entrega para el paso a paso completo.
+
 ### Posibles mejoras futuras (quedan listas para construir sobre esto, no implementadas)
 
 - Cuentas individuales en vez de una clave compartida (Supabase Auth ya lo soporta; solo
@@ -145,8 +172,9 @@ inicialmente (`supabase/migracion_inicial.sql`) y como respaldo de solo lectura 
 Supabase no está configurado o no responde. El catálogo que la app usa día a día en
 producción es el de Supabase, no este archivo:
 
-1. Para un cambio puntual: usar el flujo Excel (descargar → corregir → cargar) desde la
-   pestaña Catálogo, que ya sincroniza con todo el equipo.
+1. Para un cambio puntual: editar el `.xlsx` de SharePoint y esperar la sincronización
+   automática (o forzarla con el botón), o usar el flujo Excel manual (descargar →
+   corregir → cargar) desde la pestaña Catálogo — ambos sincronizan con todo el equipo.
 2. Para cambiar el catálogo de referencia/semilla (`CATALOGO_BASE`): editar
    `src/data/catalogo.ts` y opcionalmente correr **Restaurar catálogo original** para que
    el cambio también se refleje en el catálogo compartido.
@@ -194,9 +222,11 @@ src/
   supabaseClient.ts        cliente de Supabase + supabaseConfigurado (fallback seguro)
   AccessGate.tsx           login (Supabase Auth) — bloquea toda la app hasta iniciar sesión
   AccessGate.css           estilos de la pantalla de acceso
-  CatalogContext.tsx       catálogo compartido (Supabase + Realtime), con CATALOGO_BASE
-                          como respaldo de solo lectura si Supabase no responde
-  excelCatalogo.ts         export/import del catálogo en .xlsx (carga diferida de xlsx)
+  CatalogContext.tsx       catálogo compartido (Supabase + Realtime + auto-sync SharePoint),
+                          con CATALOGO_BASE como respaldo de solo lectura si Supabase no responde
+  excelCatalogo.ts         export/import del catálogo en .xlsx + fetch a SharePoint (carga diferida de xlsx)
+  catalogoSharePoint.ts    logica pura de la sync (URL, timing 12h, resguardo de tamaño) — sin xlsx,
+                          se importa estatico; ver por que en el comentario del archivo
   data/catalogo.ts         CATALOGO_BASE: catálogo de referencia/semilla incorporado en el código
   data/plantilla.ts        filas por defecto de Gestión y Cubicación
   components/             CascadaSelector, TablaGestion, TablaCubicacion, PanelCatalogo,
@@ -204,4 +234,6 @@ src/
   App.tsx                  estado de Cubicación/Gestión + persistencia en localStorage
 supabase/
   migracion_inicial.sql    esquema + políticas RLS + datos semilla para Supabase
+worker-catalogo/
+  src/index.ts             Cloudflare Worker: proxy+cache del .xlsx de SharePoint (ver su README.md)
 ```

@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "welearn-catalogo-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-28",
+  "observability": {
+    "enabled": true
+  }
+  // El secret CATALOGO_XLSX_URL NO va aca (este archivo se commitea). Se carga con
+  // `wrangler secret put CATALOGO_XLSX_URL` — ver README.md de esta carpeta.
+}

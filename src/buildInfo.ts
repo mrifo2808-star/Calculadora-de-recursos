@@ -4,4 +4,4 @@
  * genere automatico ni un versionado semver establecido para esta app todavia: se usa
  * la fecha del cambio (mismo criterio de fechado que el resto del ecosistema WeLearn,
  * ver VALIDAR-*.md), no un numero de version. */
-export const BUILD_ID = '2026-08-27';
+export const BUILD_ID = '2026-08-28';
