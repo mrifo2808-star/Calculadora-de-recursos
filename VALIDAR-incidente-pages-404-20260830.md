@@ -44,7 +44,7 @@ en el estado equivocado tras el ciclo privado→público y no se autocorrigió.
 ## Qué se corrigió en el código (mejora, no la causa raíz)
 
 `.github/workflows/deploy.yml`:
-- Se agregó `actions/configure-pages@v5` antes de `upload-pages-artifact` — es el paso
+- Se agregó `actions/configure-pages@v6` antes de `upload-pages-artifact` — es el paso
   que falta respecto a la plantilla oficial de GitHub para Pages + Actions con un
   framework custom (Vite). No causaba el incidente de hoy, pero es una buena práctica
   real que GitHub recomienda y que faltaba (uno de los puntos que pediste revisar
@@ -53,6 +53,54 @@ en el estado equivocado tras el ciclo privado→público y no se autocorrigió.
   pasos de recuperación exactos, para que la próxima vez que esto pase (ej. si el repo
   vuelve a ponerse privado y público) quede documentado ahí mismo, no solo en este
   VALIDAR.
+
+## Actualización 2026-08-30 (mismo día): las 2 advertencias de Node 20 del workflow
+
+Después del primer commit de esta rama, el propio workflow avisó (sin fallar): "Node.js
+20 is deprecated" para `actions/checkout@v4`, `actions/setup-node@v4`,
+`actions/upload-artifact@v4` (indirecto, ver abajo) y `actions/deploy-pages@v4`. Encargo
+de Matías: verificar antes de actualizar — versión vigente real de cada acción, cambios
+incompatibles entre la actual y la nueva, y no tocar nada que no sea una mejora limpia y
+de bajo riesgo.
+
+**Método**: para cada acción, se revisó (a) el release más reciente vía la API pública
+de GitHub (`/repos/{owner}/{repo}/releases`), (b) el registro de cambios de **cada**
+versión mayor entre la que teníamos y la última (no solo la más reciente — para no
+saltarse un breaking change de una versión intermedia), y (c) el `action.yml` real del
+tag de destino, para confirmar con el archivo mismo (no solo el changelog) que declara
+`runs.using: node24`. Se cotejó cada breaking change encontrado contra el uso real que
+hace este workflow (sin parámetros exóticos: sin submódulos, sin generador Next.js, sin
+`packageManager` en `package.json`, sin dotfiles en `dist/`).
+
+| Acción | Teníamos | Pasa a | Por qué era necesario | Breaking changes revisados | Riesgo para este workflow |
+|---|---|---|---|---|---|
+| `actions/checkout` | v4 (node20) | **v7.0.1** | v5 cambia el runtime a node24 (arregla el aviso). v6/v7 son housekeeping. | v6: guarda las credenciales git en un archivo separado (interno, no afecta nuestro uso — no hacemos otra operación git después del checkout). v7: bloquea checkout de PRs de forks en triggers `pull_request_target`/`workflow_run` (no usamos esos triggers, solo `push`/`workflow_dispatch`). | Ninguno aplicable. |
+| `actions/setup-node` | v4 (node20) | **v7.0.0** | v5 cambia el runtime a node24. | v5: activa auto-detección de caché por el campo `packageManager` de `package.json` — **verificado que `package.json` NO tiene ese campo**, así que no cambia nada (seguimos con `cache: npm` explícito, como ya estaba). v6: restringe esa auto-detección solo a npm (más angosto, no más amplio). v7: solo nuevas salidas + fixes. | Ninguno aplicable (el único breaking change relevante no tiene gatillo en este repo). |
+| `actions/upload-pages-artifact` | v3 (envolvía `upload-artifact@v4`, ahí salía el aviso de node20 aunque el workflow nunca la nombra directo) | **v5.0.0** | v5 envuelve `upload-artifact@v7` (node24) en vez de `v4` — resuelve exactamente el aviso de "upload-artifact@v4" que reportó Matías, sin que este workflow tenga que referenciar esa acción directamente. | v4: deja de incluir dotfiles (archivos que empiezan con `.`) en el artefacto — **verificado que `dist/` no genera ningún dotfile** (solo `index.html`, `favicon.svg`, `assets/*`), así que no hay nada que se deje de publicar. | Ninguno aplicable. |
+| `actions/deploy-pages` | v4 (node20) | **v5.0.0** | v5 es puramente el cambio de runtime a node24, es también la última versión — no hay changelog de por medio que revisar. | Ninguno — es un cambio de una sola línea de verdad. | Ninguno. |
+| `actions/configure-pages` | v5 (agregado hoy mismo, ya v5 tenía node24) | **v6.0.0** | Entre que se agregó esta mañana y ahora salió v6 — puramente node24 + dependencias, mismo patrón que las demás. El único breaking change de la familia (v5, soporte de Next.js) no aplica: no usamos `static_site_generator`. | Ninguno aplicable. | Ninguno. |
+
+**No se tocó** `node-version: 20` dentro de `actions/setup-node` — esa es la versión de
+Node que corre `npm ci`/`npm run build` (nuestro propio código), un asunto **separado**
+del runtime interno de las Actions de arriba, y no es lo que pedía el aviso de
+deprecación. Node 20 (LTS) sigue soportado hasta abril de 2026 — dejar esa decisión
+aparte, fuera de este encargo, y a criterio de Matías si quiere subirla en otro momento
+(quedó anotado en un comentario dentro del propio `deploy.yml`).
+
+**Verificación hecha** (sin poder ejecutar el workflow en GitHub directamente — no hay
+`gh` CLI instalado ni token disponible en este entorno):
+1. YAML sintácticamente válido (`npx js-yaml deploy.yml` parseó sin errores, estructura
+   idéntica a la esperada).
+2. Cada `action.yml` de destino descargado y confirmado con `runs.using: node24` (o,
+   para `upload-pages-artifact` que es una acción compuesta, confirmado que envuelve
+   `upload-artifact@v7`, que sí declara `node24`).
+3. `npm test -- --run` (65/65) y `npm run build` sin errores — no se tocó nada que
+   afecte al build en sí, solo las versiones de las Actions que lo orquestan.
+4. **Pendiente de verificar en la práctica**: la ejecución real en los runners de
+   GitHub. Recomiendo, después de mergear, ir a Actions → "Deploy to GitHub Pages" →
+   confirmar que el run del merge termina en éxito y sin la advertencia de Node 20 (ya
+   no debería aparecer). Si algo fallara ahí (poco probable dado lo revisado), el
+   `git revert` de este commit puntual es inmediato y no afecta el resto de la rama.
 
 `README.md`: nueva sub-sección "Si el sitio publicado da 'There isn't a GitHub Pages
 site here'" con el mismo procedimiento de recuperación, más una sección nueva
