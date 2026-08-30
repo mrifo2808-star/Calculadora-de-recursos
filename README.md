@@ -76,6 +76,53 @@ cada push a `main`. Pasos para activarlo la primera vez:
    esa línea antes de hacer push.
 3. Hacer push a `main` — el Action queda visible en la pestaña "Actions" del repo.
 
+### Si el sitio publicado da "There isn't a GitHub Pages site here" (o sirve el `index.html` sin compilar)
+
+Ya pasó una vez (2026-08-29/30): el repo pasó a privado brevemente, GitHub apagó Pages
+solo (Pages con repo privado necesita plan pago), y al volver a ponerlo público **Settings
+→ Pages no se restauró solo** — quedó en el modo clásico "Deploy from a branch: main
+/(root)" en vez de "GitHub Actions", así que lo que se veía publicado era el `index.html`
+de código fuente sin compilar (o directamente "site not found"), no el build real, aunque
+el workflow de Actions seguía corriendo y "en éxito". Si vuelve a pasar:
+
+1. Settings → Pages → **Source: GitHub Actions** → confirmar que quedó guardado (volver a
+   entrar a la página y verificar que siga marcado esa opción, no asumir que el primer
+   guardado quedó).
+2. Actions → **Deploy to GitHub Pages** → **Run workflow** (en `main`) — no hace falta un
+   push nuevo, el workflow tiene `workflow_dispatch`.
+3. Esperar ~1 min y recargar `https://mrifo2808-star.github.io/Calculadora-de-recursos/`
+   con caché vacía (Ctrl+Shift+R).
+
+Si el repo va a quedar privado de forma permanente, GitHub Pages en un plan personal no
+sirve — ver "Despliegue alternativo: Cloudflare Pages" más abajo.
+
+### Despliegue alternativo: Cloudflare Pages (recomendado si el repo debe quedar privado)
+
+GitHub Pages en cuenta personal **no publica repos privados** salvo plan de pago — es la
+causa raíz del incidente de arriba. Cloudflare Pages sí sirve repos privados gratis, y
+Matías ya lo usa para otras herramientas (landing de Mesura, el Worker
+`worker-catalogo/` de esta misma Calculadora), así que es la opción con menos piezas
+nuevas que aprender. No requiere ningún cambio en este repo: el `base` de
+`vite.config.ts` queda como está (para no romper GitHub Pages si se mantienen los dos
+despliegues en paralelo) y se sobrescribe solo en el build de Cloudflare con un flag de
+CLI.
+
+1. Cloudflare Dashboard → **Workers & Pages → Create → Pages → Connect to Git** → elegir
+   `mrifo2808-star/Calculadora-de-recursos` (si el repo es privado, autorizar la GitHub
+   App de Cloudflare a verlo).
+2. Build settings: *Framework preset* = Vite, **Build command** =
+   `npm run build -- --base=/` (el flag `--base=/` pisa el `/Calculadora-de-recursos/`
+   de `vite.config.ts` solo para este build, porque Cloudflare Pages sirve desde la raíz
+   del dominio, no desde un subpath), *Build output directory* = `dist`.
+3. Variables de entorno (Settings → Environment variables): copiar de `.env` los mismos
+   3 valores — `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_CATALOGO_WORKER_URL`.
+4. Deploy. Queda publicado en `<proyecto>.pages.dev` (dominio propio opcional después).
+5. El Worker `worker-catalogo/` no cambia — ya vive en Cloudflare, sin relación con este
+   paso.
+6. Una vez confirmado que Cloudflare Pages funciona, Matías decide si mantiene GitHub
+   Pages como respaldo (repo debe seguir público) o lo da de baja (Settings → Pages →
+   desactivar) y ya puede volver el repo a privado sin perder el sitio publicado.
+
 ## Backend (Supabase): login y catálogo compartido
 
 La app está detrás de una clave de acceso **verificada del lado del servidor** (Supabase

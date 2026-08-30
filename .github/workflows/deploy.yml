@@ -1,3 +1,9 @@
+# Incidente 2026-08-29/30: el repo paso a privado y GitHub apago Pages solo (Pages con
+# repo privado requiere plan pago); al volver a publico, Settings -> Pages NO se
+# restauro solo — quedo en "Deploy from a branch: main /(root)" (sirviendo el index.html
+# de codigo fuente sin build, o simplemente "site not found"), y hubo que reelegir a mano
+# Source = "GitHub Actions". Si esto vuelve a pasar: Settings -> Pages -> Source ->
+# "GitHub Actions" -> Save, despues Actions -> "Deploy to GitHub Pages" -> Run workflow.
 name: Deploy to GitHub Pages
 
 on:
@@ -25,6 +31,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
