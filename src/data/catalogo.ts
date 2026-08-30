@@ -1,13 +1,25 @@
 import type { RecursoCatalogo } from '../types';
 
 /**
- * Fuente base: WeLearn_Calculadora_Recursos_v1.3_RC7_EDITABLE.xlsx, hoja "Catalogo"
- * (veredicto APROBADO RC7, ver outputs/reporte_QA_RC7.txt), ampliado el 2026-08-17 con
- * hallazgos de una auditoria de solo lectura contra tareas reales en varios espacios de
- * Wrike (P2026, UNAB, INACAP Diplomado). Solo Estado="Validado" es seleccionable en la
- * cascada Tipo -> Recurso; Pendiente/Historico quedan visibles en el catalogo de
- * referencia pero no calculan. Catálogo incorporado en el código (punto de partida /
- * "restaurar original").
+ * SNAPSHOT HISTORICO — NO es la fuente del catalogo. Decision de Matias Rifo,
+ * 2026-08-29 (ver README.md "Fuente unica del catalogo" y CLAUDE.md de la Calculadora):
+ * la fuente unica es el Excel de SharePoint que la webapp sincroniza (worker-catalogo/ +
+ * obtenerCatalogoDesdeSharePoint en excelCatalogo.ts). Este array solo se usa como:
+ *  1) placeholder mientras Supabase responde al cargar la app,
+ *  2) respaldo de solo lectura si Supabase no responde,
+ *  3) contenido de "Restaurar catalogo original" (salida de emergencia, ver
+ *     PanelCatalogo.tsx) — reemplaza el catalogo COMPARTIDO por ESTE snapshot, no por
+ *     el ultimo Excel de SharePoint.
+ * Por eso esta desactualizado a proposito y no se actualiza a mano: se construyo
+ * originalmente desde WeLearn_Calculadora_Recursos_v1.3_RC7_EDITABLE.xlsx (veredicto
+ * APROBADO RC7, ver outputs/reporte_QA_RC7.txt, 41 recursos), ampliado a mano el
+ * 2026-08-17 con hallazgos de una auditoria de solo lectura contra tareas reales en
+ * varios espacios de Wrike (P2026, UNAB, INACAP Diplomado) — 47 recursos. El catalogo
+ * real (SharePoint, sincronizado en vivo) ya tenia 54 recursos al 2026-08-29, con
+ * recursos nuevos que este snapshot no incluye. Si se necesita corregir el catalogo real,
+ * el cambio va en el Excel de SharePoint — nunca en este archivo.
+ * Solo Estado="Validado" es seleccionable en la cascada Tipo -> Recurso; Pendiente/
+ * Historico quedan visibles en el catalogo de referencia pero no calculan.
  */
 export const CATALOGO_BASE: RecursoCatalogo[] = [
   { id: 'Actividad|Actividad formativa Word|1 pag', estado: 'Pendiente', tipo: 'Actividad', nombreVisible: 'Actividad formativa Word', extension: '1 pag', unidad: 'paginas', di: 0.75, dg: null, sop: null, fuente: 'O2027 Flujo por Recurso', observaciones: 'DI=0:45h (guion word). Sin DG ni Sop porque es actividad de autoria docente sin produccion multimedia.' },

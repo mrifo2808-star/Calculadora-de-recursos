@@ -1,6 +1,13 @@
 -- Migracion inicial: catalogo de recursos compartido de la Calculadora WeLearn.
 -- Correr UNA VEZ en Supabase -> SQL Editor -> New query -> pegar todo -> Run.
 -- Es seguro volver a correrlo (usa IF NOT EXISTS / ON CONFLICT), no duplica filas.
+--
+-- El seed de abajo es un SNAPSHOT HISTORICO para arrancar un proyecto Supabase nuevo
+-- desde cero, no la fuente del catalogo (decision de Matias Rifo, 2026-08-29 — ver
+-- README.md "Fuente unica del catalogo"). La fuente real es el Excel de SharePoint que
+-- la webapp sincroniza sola en las primeras 12h despues de correr esta migracion
+-- (o al instante con "Actualizar catalogo (SharePoint)" en la app). No editar este seed
+-- para "actualizar" el catalogo: el cambio va en el Excel de SharePoint.
 
 create table if not exists public.catalogo_recursos (
   id text primary key,

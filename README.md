@@ -98,7 +98,9 @@ haber iniciado sesión, sin importar qué tan bien alguien inspeccione el JS del
    email).
 2. En el proyecto → **SQL Editor** → pegar y correr **todo** el contenido de
    [`supabase/migracion_inicial.sql`](supabase/migracion_inicial.sql) (crea la tabla
-   `catalogo_recursos`, las políticas RLS, y siembra los 47 recursos vigentes).
+   `catalogo_recursos`, las políticas RLS, y siembra 47 recursos de snapshot inicial —
+   la sincronización automática con SharePoint los actualiza al catálogo real dentro de
+   las primeras 12 h, ver "Fuente única del catálogo" más abajo).
 3. En **Authentication → Users → Add user**, crear la cuenta compartida del equipo:
    - Email: `equipo@calculadora.welearn.cl` (debe coincidir con `EQUIPO_EMAIL` en
      `src/AccessGate.tsx`; si se usa otro email, actualizar esa constante).
@@ -114,6 +116,44 @@ haber iniciado sesión, sin importar qué tan bien alguien inspeccione el JS del
 
 Sin `.env` configurado, la app muestra una pantalla de "Falta configurar Supabase" en vez
 de dejar pasar a cualquiera — nunca hace fallback silencioso a "sin login".
+
+### Fuente única del catálogo (decisión 2026-08-29)
+
+Durante un tiempo convivieron 3 copias del catálogo de tasas — el Excel de la
+calculadora (RC7, pipeline PowerShell/Excel COM en `Calculadora/scripts`), el snapshot
+incorporado en el código de esta webapp (`src/data/catalogo.ts`, `CATALOGO_BASE`), y el
+catálogo compartido en Supabase — sin que estuviera zanjado cuál mandaba si no
+coincidían. **Matías Rifo decidió (2026-08-29): manda el catálogo de la webapp, el que
+se sincroniza en vivo desde el Excel de SharePoint** ("que mande lo de la webapp que se
+sincroniza con el SharePoint"). Razón: es el único de los tres que se actualiza solo,
+sin depender de que alguien recuerde regenerar un Excel o copiar datos a mano — ver
+"Sincronización del catálogo desde SharePoint" más abajo.
+
+Estado verificado el 2026-08-29 (cifras, para que quede trazable):
+
+| Fuente | Recursos | Rol |
+|---|---|---|
+| **Excel de SharePoint (vía Worker)** | **54** | **Fuente única y vigente** |
+| `src/data/catalogo.ts` (`CATALOGO_BASE`) | 47 | Snapshot histórico — placeholder/respaldo/emergencia, ver más abajo |
+| `WeLearn_Calculadora_Recursos_v1.3_RC7_EDITABLE.xlsx` (hoja `Catalogo_Tecnico`) | 41 | Material histórico del pipeline Excel — no alimenta la webapp |
+
+El Excel de SharePoint no es un superset simple de los otros dos: trae 8 recursos
+nuevos (`Video de bienvenida`, `SCORM - Rise /Plantilla personalizada`, `Video de
+unidad`, `PDF descargable`, `Resumen`, `Glosario`, `Cuestionario sumativo`, `Actividad
+formativa Rise (Actividades)`) que no existen en `catalogo.ts` ni en RC7, y reclasificó
+la mayoría de los recursos antiguos de `Validado` a `Pendiente` — es decir, alguien del
+equipo ya lo está usando activamente para curar el catálogo, mientras que RC7 y
+`catalogo.ts` quedaron congelados en una foto anterior.
+
+**RC7 y `catalogo.ts` quedan como material histórico, no como fuente**: el pipeline
+Excel (`Calculadora/scripts/build_calculadora_RC*.ps1`) sigue existiendo como
+herramienta de cubicación de horas independiente, pero su hoja `Catalogo`/
+`Catalogo_Tecnico` ya no es la referencia de tasas — si en algún momento hay que
+cotejar una tasa, se coteja contra el Excel de SharePoint, no contra RC7.
+`src/data/catalogo.ts` sigue en el repo a propósito (ver el comentario al inicio del
+archivo) como placeholder de carga inicial, respaldo de solo lectura si Supabase no
+responde, y contenido de la salida de emergencia "Restaurar catálogo original" — nunca
+como algo para editar a mano cuando cambian las tasas reales.
 
 ### Cómo se usa desde la app
 
