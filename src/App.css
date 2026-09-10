@@ -102,6 +102,20 @@
   margin: 0 0 4px;
 }
 
+/* Formula destacada dentro de un panel de texto (ver PanelInstrucciones: la formula
+   de las horas de gestion). Se lee como una linea aparte, no como parrafo. */
+.panel__formula {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--navy);
+  background: var(--celestebg);
+  border-left: 3px solid var(--celeste);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: 8px 0 10px;
+  overflow-x: auto;
+}
+
 .panel__hint {
   font-size: 13px;
   color: var(--muted);

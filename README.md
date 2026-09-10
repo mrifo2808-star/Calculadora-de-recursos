@@ -35,20 +35,58 @@ clases de fila, distinguidas por si son o no editables desde la interfaz (column
 `removable` en `GestionRow`, `types.ts`):
 
 - **7 cargos BASE** (`CARGOS_BASE_GESTION` en `data/plantilla.ts`): van siempre en todo
-  proyecto, con el porcentaje definido en el código — JP 30%, DI/DG/Sop Senior 20/5/5%,
-  DI/DG/Sop TL 5% cada uno (definidos por Matías el 27-08-2026). Cada uno es un **% fijo
-  del total de HH de producción** del proyecto (recursos de Cubicación en etapas
-  activas, por curso — ver `totalRecursosCurso` en `calc.ts`) y se recalcula solo cuando
-  ese total cambia. **No son editables ni eliminables desde la interfaz** — solo se
-  pueden activar/desactivar; para cambiar un porcentaje o agregar/quitar un cargo base
-  hay que editar `CARGOS_BASE_GESTION` en el código y desplegar. `reconciliarGestionBase`
-  (mismo archivo) fuerza estos 7 valores en cada carga de `localStorage` y en cada
-  importación de Excel, así que ni un archivo editado a mano ni un estado guardado viejo
-  pueden alterarlos — están bloqueados de verdad, no solo ocultos en la interfaz.
+  proyecto, con el porcentaje definido en el código. Su fórmula es
+
+  ```
+  HH gestión (cargo) = % del cargo × HH de producción × (0,56 + 0,44 × semanas ÷ 16)
+  ```
+
+  donde las HH de producción son las de los recursos de Cubicación en etapas activas,
+  por curso (`totalRecursosCurso` en `calc.ts`) y las semanas son el mismo N° de semanas
+  del proyecto que usa el Factor de las filas "Por semana". **No son editables ni
+  eliminables desde la interfaz** — solo se pueden activar/desactivar; para cambiar un
+  porcentaje o agregar/quitar un cargo base hay que editar `CARGOS_BASE_GESTION` en el
+  código y desplegar. `reconciliarGestionBase` (mismo archivo) fuerza estos 7 valores en
+  cada carga de `localStorage` y en cada importación de Excel, así que ni un archivo
+  editado a mano ni un estado guardado viejo pueden alterarlos — están bloqueados de
+  verdad, no solo ocultos en la interfaz.
 - **Cargos agregados a mano** ("+ Agregar cargo"): totalmente editables y eliminables.
   Cada uno elige su propio **Tipo**: **Fijo** (misma fórmula de Factor que producción,
-  Cantidad × Factor × HH unitaria) o **% Proyecto** (igual fórmula que los cargos base,
-  con su propio porcentaje).
+  Cantidad × Factor × HH unitaria) o **% Proyecto** (un % plano de las HH de producción,
+  con su propio porcentaje y **sin** el ajuste por duración — ese porcentaje lo escribe
+  quien cubica para ese proyecto, con su duración ya en mente).
+
+### De dónde salen los porcentajes de los cargos base (10-09-2026)
+
+Del modelo de estimación institucional `MODELO_ESTIMACION_v02.00.xlsx`, cubicación
+validada por la Gerencia de Operaciones. Cada porcentaje es las HH que el modelo cubica
+para ese rol divididas por las **3.500 HH** de su proyecto de referencia (16 semanas):
+
+| Cargo | HH del modelo | % (HH ÷ 3.500) |
+|---|--:|--:|
+| Gestion JP | 108,75 | 3,107 % |
+| Gestion DI Senior | 161,25 | 4,607 % |
+| Gestion DG Senior | 56,25 | 1,607 % |
+| Gestion Sop Senior | 56,25 | 1,607 % |
+| Gestion DI TL | 39,375 | 1,125 % |
+| Gestion DG TL | 30 | 0,857 % |
+| Gestion Sop TL | 30 | 0,857 % |
+| **Total** | **481,875** | **13,767 %** |
+
+El ratio exacto es 13,7679 %; los 7 porcentajes redondeados a tres decimales suman
+13,767 %, ~0,03 HH menos sobre el proyecto de referencia (0,006 %).
+
+Estos valores **reemplazan** a los fijados a ojo el 27-08-2026 (JP 30 %, Senior
+20/5/5 %, TL 5/5/5 % = **75 %** de la producción), que estaban ~5,4× por sobre el
+modelo. Toda cubicación anterior arroja ahora un total menor.
+
+**El ajuste por duración** (`factorDuracionGestion` en `calc.ts`) existe porque antes la
+fórmula era ciega al calendario: 8 o 32 semanas pedían las mismas horas de jefatura. El
+modelo separa las 481,875 HH en 210 HH (43,6 %) de dedicación sostenida —JP 10 %, DI TL
+5 %, DI S 10 %, DG S 5 %, QA S 5 % de un FTE = 13,125 HH/semana × 16 semanas: comités,
+seguimiento, informes— y 271,875 HH (56,4 %) de arranque, arquitectura, piloto e
+implementación, que dependen del tamaño y no de la duración. De ahí el 0,56 / 0,44. A 16
+semanas el factor vale exactamente 1; a 32 vale 1,44; a 8 vale 0,78; su piso es 0,56.
 
 ## Desarrollo local
 

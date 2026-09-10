@@ -1,5 +1,5 @@
 import { FRECUENCIAS, type GestionRow, type TipoCargoGestion } from '../types';
-import { calcularGestion } from '../calc';
+import { calcularGestion, factorDuracionGestion, SEMANAS_REFERENCIA_GESTION } from '../calc';
 import { fmt } from '../format';
 
 interface Props {
@@ -34,6 +34,9 @@ const LOCK_TITLE = 'Cargo base: definido en el código, no editable desde la int
  */
 export function TablaGestion({ rows, nSemanas, baseGestionHH, onChange, onAdd }: Props) {
   const calculadas = calcularGestion(rows, nSemanas, baseGestionHH);
+  // Se muestra en la ayuda porque, si no, la columna "% proyecto" de un cargo base no
+  // cuadra con su "Total HH": el total lleva ademas este ajuste por duracion.
+  const factorDuracion = factorDuracionGestion(nSemanas);
   // Las filas desactivadas se muestran (atenuadas) pero no suman al total, igual que en
   // el Resumen general y en la exportacion a Excel.
   const totalGestion = calculadas.filter((r) => r.activa !== false).reduce((a, r) => a + r.total, 0);
@@ -47,10 +50,17 @@ export function TablaGestion({ rows, nSemanas, baseGestionHH, onChange, onAdd }:
     <>
       <p className="panel__hint">
         Los 7 cargos base (JP, Senior, Jefes de Área) van siempre en el proyecto, con el porcentaje definido en el
-        código — no son editables ni eliminables desde acá, solo se pueden activar/desactivar. «+ Agregar cargo» suma
-        uno nuevo, ese sí editable: elige si es <strong>% Proyecto</strong> (porcentaje fijo del total de HH de
-        producción, hoy {fmt(baseGestionHH)} HH) o <strong>Fijo</strong> (Cantidad × Frecuencia × HH unitaria, igual
-        que un recurso de Cubicación).
+        código — no son editables ni eliminables desde acá, solo se pueden activar/desactivar. Su Total HH es{' '}
+        <strong>% del cargo × HH de producción × factor de duración</strong>, donde el factor es{' '}
+        <strong>0,56 + 0,44 × (semanas ÷ {SEMANAS_REFERENCIA_GESTION})</strong> — con las {fmt(nSemanas)} semanas de
+        este proyecto vale <strong>{fmt(factorDuracion)}</strong>, sobre {fmt(baseGestionHH)} HH de producción. Por
+        eso el Total HH de un cargo base no es su porcentaje a secas.
+      </p>
+      <p className="panel__hint">
+        «+ Agregar cargo» suma uno nuevo, ese sí editable: elige si es <strong>% Proyecto</strong> (porcentaje fijo
+        del total de HH de producción, hoy {fmt(baseGestionHH)} HH, <em>sin</em> ajuste por duración — lo defines tú
+        para este proyecto) o <strong>Fijo</strong> (Cantidad × Frecuencia × HH unitaria, igual que un recurso de
+        Cubicación).
       </p>
       <div className="tabla-scroll">
         <table className="tabla">

@@ -25,18 +25,35 @@ export const PARAMETROS_DEFAULT: ParametrosCurso = {
  * de eliminar — solo se pueden activar/desactivar). Para cambiar un porcentaje o
  * agregar/quitar un cargo base, editar esta lista y hacer un deploy nuevo.
  *
- * Definidos por Matías el 27-08-2026 (JP 30%, Senior DI/DG/Sop 20/5/5%, Jefes de Área
- * TL DI/DG/Sop 5% cada uno); confirmados como "los de base, van siempre" y bloqueados
- * a edición desde la interfaz el mismo día.
+ * ORIGEN DE LOS PORCENTAJES (10-09-2026) — modelo de estimación institucional
+ * `MODELO_ESTIMACION_v02.00.xlsx`, cubicación validada por la Gerencia de Operaciones.
+ * Cada porcentaje es las HH que el modelo cubica para ese rol divididas por las
+ * **3.500 HH** del proyecto de referencia (16 semanas):
+ *
+ *     JP      108,75 HH / 3.500 = 3,107 %      DI TL    39,375 HH = 1,125 %
+ *     DI S    161,25 HH         = 4,607 %      DG TL    30 HH     = 0,857 %
+ *     DG S     56,25 HH         = 1,607 %      Sop TL   30 HH     = 0,857 %
+ *     Sop S    56,25 HH         = 1,607 %
+ *                                --------------------------------------------
+ *     Total   481,875 HH / 3.500 = 13,7679 %  → 13,767 % sumando los redondeos
+ *
+ * Estos porcentajes REEMPLAZAN a los definidos a ojo por Matías el 27-08-2026 (JP 30 %,
+ * Senior DI/DG/Sop 20/5/5 %, TL DI/DG/Sop 5 % c/u = 75 % del total de producción), que
+ * estaban ~5,4× por sobre el modelo institucional. Toda cubicación hecha antes de este
+ * cambio arroja ahora un total menor — ver VALIDAR-gestion-modelo-institucional-20260910.md.
+ *
+ * Los cargos base además se ajustan por la duración del proyecto (ver
+ * `factorDuracionGestion` en calc.ts): estos porcentajes son los del proyecto de
+ * referencia de 16 semanas, donde ese factor vale exactamente 1.
  * ========================================================================== */
 export const CARGOS_BASE_GESTION: readonly { cargo: string; porcentaje: number }[] = [
-  { cargo: 'Gestion JP', porcentaje: 30 },
-  { cargo: 'Gestion DI Senior', porcentaje: 20 },
-  { cargo: 'Gestion DG Senior', porcentaje: 5 },
-  { cargo: 'Gestion Sop Senior', porcentaje: 5 },
-  { cargo: 'Gestion DI TL', porcentaje: 5 },
-  { cargo: 'Gestion DG TL', porcentaje: 5 },
-  { cargo: 'Gestion Sop TL', porcentaje: 5 },
+  { cargo: 'Gestion JP', porcentaje: 3.107 },
+  { cargo: 'Gestion DI Senior', porcentaje: 4.607 },
+  { cargo: 'Gestion DG Senior', porcentaje: 1.607 },
+  { cargo: 'Gestion Sop Senior', porcentaje: 1.607 },
+  { cargo: 'Gestion DI TL', porcentaje: 1.125 },
+  { cargo: 'Gestion DG TL', porcentaje: 0.857 },
+  { cargo: 'Gestion Sop TL', porcentaje: 0.857 },
 ];
 
 const cargoBase = (cargo: string, porcentaje: number, rowId?: string, activa?: boolean): GestionRow => ({
