@@ -16,7 +16,20 @@ export const PARAMETROS_DEFAULT: ParametrosCurso = {
   nCursos: 1,
   nSemanas: 4,
   modalidad: 'Full',
+  // Apagado por defecto: la gestión docente estándar solo se suma si quien cubica la
+  // activa a mano en la pestaña Cubicación (ver calcularGestionDocente en calc.ts).
+  gestionDocente: false,
 };
+
+/** Parámetros guardados en `localStorage` por una versión anterior de la app: se
+ * completan con el default campo a campo (no se reemplazan enteros). En particular, un
+ * estado de antes del toggle de gestión docente no trae `gestionDocente` y debe quedar
+ * APAGADO — solo un `true` explícito lo enciende. */
+export const migrarParametros = (guardado: Partial<ParametrosCurso> | undefined): ParametrosCurso => ({
+  ...PARAMETROS_DEFAULT,
+  ...guardado,
+  gestionDocente: guardado?.gestionDocente === true,
+});
 
 /* ============================================================================
  * CARGOS BASE DE GESTION — van SIEMPRE en todo proyecto, con este porcentaje fijo

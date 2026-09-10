@@ -116,6 +116,56 @@
   overflow-x: auto;
 }
 
+/* Toggle «Incluir gestión docente (DI)» de la pestaña Cubicación (ver TablaCubicacion).
+   Bloque propio, arriba de las secciones: no pertenece a ninguna etapa (desactivar
+   «Gestión del proyecto» no lo apaga). */
+.gestion-docente {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 4px 0 16px;
+  background: var(--card);
+}
+
+.gestion-docente--activa {
+  border-color: var(--celeste);
+}
+
+.gestion-docente__control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 16px;
+}
+
+.gestion-docente__toggle {
+  flex: 0 0 auto;
+  font-size: 13.5px;
+  color: var(--navy);
+  padding-top: 2px;
+}
+
+.gestion-docente__ayuda {
+  flex: 1 1 280px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.gestion-docente__resultado {
+  margin-top: 10px;
+}
+
+.gestion-docente__desglose {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.gestion-docente__resultado .panel__hint {
+  margin: 4px 0 8px;
+}
+
 .panel__hint {
   font-size: 13px;
   color: var(--muted);
@@ -631,7 +681,13 @@ button:focus-visible {
   color: #bcd7f0;
 }
 
-.tarjeta--destacada .tarjeta__valor {
+.tarjeta--destacada /* Nota bajo el valor de una tarjeta (ej. "incluye X HH de gestión docente" en HH DI). */
+.tarjeta__nota {
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+
+.tarjeta__valor {
   color: #fff;
 }
 

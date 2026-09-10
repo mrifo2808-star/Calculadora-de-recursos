@@ -75,6 +75,14 @@ export function PanelInstrucciones() {
         seguimiento, informes semanales—. A 16 semanas el ajuste vale 1 y no cambia nada; un proyecto de la misma
         envergadura pero de 32 semanas suma un 44 % más de gestión.
       </p>
+      <p className="panel__texto">
+        <strong>Gestión docente (DI).</strong> El interruptor «Incluir gestión docente (DI)» de la pestaña Cubicación,
+        apagado por defecto, suma 30 minutos semanales por curso de coordinación con el docente:{' '}
+        <strong>0,5 HH × N° cursos × N° semanas</strong>, a la línea de DI y encima de los cargos base — no los
+        reemplaza. Supone que todos los cursos están activos todas las semanas, así que cubre el caso estándar: sobre
+        16 semanas la app avisa que sobreestima, y en proyectos largos la gestión docente se agrega como tarea desde
+        el catálogo, no con este interruptor.
+      </p>
 
       <h3>6. Acceso</h3>
       <p className="panel__texto">

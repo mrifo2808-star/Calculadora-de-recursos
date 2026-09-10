@@ -61,4 +61,9 @@ export interface ParametrosCurso {
   nCursos: number;
   nSemanas: number;
   modalidad: string;
+  /** Toggle «Incluir gestión docente (DI)» de la pestaña Cubicación: suma 0,5 HH por
+   * curso por semana a la línea de DI (ver `calcularGestionDocente` en calc.ts). Apagado
+   * por defecto. Ausente en estados guardados / Excel de antes de esta funcionalidad:
+   * se trata como false (ver estadoInicial en App.tsx e importCubicacion.ts). */
+  gestionDocente: boolean;
 }

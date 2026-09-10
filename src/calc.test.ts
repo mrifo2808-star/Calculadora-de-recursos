@@ -1,16 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AVISO_GESTION_DOCENTE_PROYECTO_LARGO,
+  AYUDA_GESTION_DOCENTE,
   calcularGestion,
+  calcularGestionDocente,
   calcularProduccion,
   calcularResumen,
+  desgloseGestionDocente,
   factorDuracionGestion,
+  HH_GESTION_DOCENTE_POR_CURSO_SEMANA,
+  SEMANAS_LIMITE_GESTION_DOCENTE,
   PARTE_POR_CALENDARIO_GESTION,
   PARTE_POR_TAMANO_GESTION,
   SEMANAS_REFERENCIA_GESTION,
   totalRecursosCurso,
   type ProduccionCalculada,
 } from './calc';
-import { CARGOS_BASE_GESTION, gestionDefault, nuevaFilaGestion, reconciliarGestionBase } from './data/plantilla';
+import {
+  CARGOS_BASE_GESTION,
+  gestionDefault,
+  migrarParametros,
+  nuevaFilaGestion,
+  PARAMETROS_DEFAULT,
+  reconciliarGestionBase,
+} from './data/plantilla';
 import type { GestionRow, ProduccionRow, RecursoCatalogo } from './types';
 
 const RECURSO: RecursoCatalogo = {
@@ -410,5 +423,149 @@ describe('calcularResumen — integracion con Gestion (base porcentual + cargo f
     );
     const resumen = calcularResumen(produccion, gestion, 1, ['MODULO INICIAL (1 vez por curso)']);
     expect(resumen.hhGestionCurso).toBe(0);
+  });
+});
+
+/* ============================================================================
+ * Gestion docente estandar (DI) — toggle «Incluir gestión docente (DI)» (10-09-2026).
+ * HH = 0,5 x N° cursos x N° semanas, aditiva sobre la linea de DI.
+ * ========================================================================== */
+describe('Gestion docente (DI) — el toggle nace apagado', () => {
+  it('PARAMETROS_DEFAULT trae el toggle apagado', () => {
+    expect(PARAMETROS_DEFAULT.gestionDocente).toBe(false);
+  });
+
+  it('un estado guardado de antes del toggle (sin el campo) queda apagado', () => {
+    const guardadoViejo = { proyecto: 'P', cliente: 'C', nCursos: 12, nSemanas: 16, modalidad: 'Full' };
+    const migrado = migrarParametros(guardadoViejo as Parameters<typeof migrarParametros>[0]);
+    expect(migrado.gestionDocente).toBe(false);
+    expect(migrado.nCursos).toBe(12); // el resto de los parametros se conserva
+    expect(migrarParametros(undefined).gestionDocente).toBe(false);
+  });
+
+  it('solo un true explicito lo enciende al migrar', () => {
+    expect(migrarParametros({ gestionDocente: true }).gestionDocente).toBe(true);
+    expect(migrarParametros({ gestionDocente: 'si' as unknown as boolean }).gestionDocente).toBe(false);
+  });
+
+  it('apagado no suma nada, aunque haya cursos y semanas', () => {
+    const g = calcularGestionDocente(false, 12, 16);
+    expect(g.hhPorCurso).toBe(0);
+    expect(g.hhProyecto).toBe(0);
+    expect(g.avisoProyectoLargo).toBe(false);
+  });
+});
+
+describe('Gestion docente (DI) — formula 0,5 x cursos x semanas', () => {
+  it('son 30 minutos por curso por semana', () => {
+    expect(HH_GESTION_DOCENTE_POR_CURSO_SEMANA).toBe(0.5);
+  });
+
+  it('12 cursos x 16 semanas = 96 HH (8 por curso)', () => {
+    const g = calcularGestionDocente(true, 12, 16);
+    expect(g.hhProyecto).toBe(96);
+    expect(g.hhPorCurso).toBe(8);
+  });
+
+  it('otros casos: 1 x 4 = 2 HH, 3 x 10 = 15 HH, 7 x 9 = 31,5 HH', () => {
+    expect(calcularGestionDocente(true, 1, 4).hhProyecto).toBe(2);
+    expect(calcularGestionDocente(true, 3, 10).hhProyecto).toBe(15);
+    expect(calcularGestionDocente(true, 7, 9).hhProyecto).toBe(31.5);
+  });
+
+  it('valores no numericos o negativos cuentan como 0', () => {
+    expect(calcularGestionDocente(true, Number.NaN, 16).hhProyecto).toBe(0);
+    expect(calcularGestionDocente(true, 12, -3).hhProyecto).toBe(0);
+  });
+
+  it('el desglose muestra la cuenta completa, para auditarla sin abrir el codigo', () => {
+    expect(desgloseGestionDocente(calcularGestionDocente(true, 12, 16))).toBe('12 cursos × 16 semanas × 0,5 HH = 96 HH');
+    expect(desgloseGestionDocente(calcularGestionDocente(true, 1, 1))).toBe('1 curso × 1 semana × 0,5 HH = 0,5 HH');
+  });
+
+  it('el texto de ayuda dice lo que hace y lo que no (no es la iteracion con el docente)', () => {
+    expect(AYUDA_GESTION_DOCENTE).toContain('30 minutos semanales por curso');
+    expect(AYUDA_GESTION_DOCENTE).toContain('0,5 HH × cursos × semanas');
+    expect(AYUDA_GESTION_DOCENTE).toContain('Es distinto de la iteración con el docente');
+  });
+});
+
+describe('Gestion docente (DI) — aviso de proyecto largo (> 16 semanas)', () => {
+  it('el limite es 16 semanas', () => {
+    expect(SEMANAS_LIMITE_GESTION_DOCENTE).toBe(16);
+  });
+
+  it('a 16 semanas justas no avisa; a 17 si', () => {
+    expect(calcularGestionDocente(true, 12, 16).avisoProyectoLargo).toBe(false);
+    expect(calcularGestionDocente(true, 12, 17).avisoProyectoLargo).toBe(true);
+  });
+
+  it('avisa pero NO bloquea: el calculo sigue sumando (69 x 69 = 2.380,5 HH)', () => {
+    const g = calcularGestionDocente(true, 69, 69);
+    expect(g.avisoProyectoLargo).toBe(true);
+    expect(g.hhProyecto).toBe(2380.5);
+  });
+
+  it('con el toggle apagado no hay desglose, asi que tampoco aviso', () => {
+    expect(calcularGestionDocente(false, 69, 69).avisoProyectoLargo).toBe(false);
+  });
+
+  it('el aviso explica la sobreestimacion y remite al catalogo', () => {
+    expect(AVISO_GESTION_DOCENTE_PROYECTO_LARGO).toContain('supera las 16 semanas');
+    expect(AVISO_GESTION_DOCENTE_PROYECTO_LARGO).toContain('sobreestima');
+    expect(AVISO_GESTION_DOCENTE_PROYECTO_LARGO).toContain('como tarea desde el catálogo');
+  });
+});
+
+describe('Gestion docente (DI) — se suma a DI y es aditiva sobre la gestion del ratio', () => {
+  const SECCION = ['MODULO INICIAL (1 vez por curso)'];
+  const produccion = calcularProduccion([filaProduccion({ cantidad: 2 })], 16, [RECURSO]); // 14 HH: DI 5, DG 8, SOP 1
+  const base = totalRecursosCurso(produccion);
+  const gestion = calcularGestion(gestionDefault(), 16, base);
+
+  const resumenCon = (activa: boolean, nCursos: number, nSemanas: number) =>
+    calcularResumen(produccion, gestion, nCursos, SECCION, calcularGestionDocente(activa, nCursos, nSemanas).hhPorCurso);
+
+  it('sin el quinto argumento el Resumen es el de siempre (compatibilidad)', () => {
+    expect(calcularResumen(produccion, gestion, 12, SECCION)).toEqual(resumenCon(false, 12, 16));
+    expect(resumenCon(false, 12, 16).hhGestionDocenteProyecto).toBe(0);
+  });
+
+  it('suma a HH DI, por curso y por proyecto: 12 cursos x 16 semanas = +96 HH DI', () => {
+    const off = resumenCon(false, 12, 16);
+    const on = resumenCon(true, 12, 16);
+    expect(on.hhDICurso - off.hhDICurso).toBeCloseTo(8, 10);
+    expect(on.hhDIProyecto - off.hhDIProyecto).toBeCloseTo(96, 10);
+    expect(on.hhGestionDocenteCurso).toBe(8);
+    expect(on.hhGestionDocenteProyecto).toBe(96);
+  });
+
+  it('no toca DG ni SOP', () => {
+    const off = resumenCon(false, 12, 16);
+    const on = resumenCon(true, 12, 16);
+    expect(on.hhDGCurso).toBe(off.hhDGCurso);
+    expect(on.hhSOPCurso).toBe(off.hhSOPCurso);
+  });
+
+  it('el total del proyecto sube exactamente 96 HH (los cursos no se cuentan dos veces)', () => {
+    expect(resumenCon(true, 12, 16).totalGeneralProyecto - resumenCon(false, 12, 16).totalGeneralProyecto).toBeCloseTo(96, 10);
+  });
+
+  it('DI + DG + SOP sigue cuadrando con Total HH recursos', () => {
+    const on = resumenCon(true, 12, 16);
+    expect(on.hhDICurso + on.hhDGCurso + on.hhSOPCurso).toBeCloseTo(on.totalRecursosCurso, 10);
+  });
+
+  it('es aditiva: la gestion del ratio (cargos base, incluidos DI Senior y DI TL) no cambia', () => {
+    const off = resumenCon(false, 12, 16);
+    const on = resumenCon(true, 12, 16);
+    expect(on.hhGestionCurso).toBe(off.hhGestionCurso);
+    expect(on.hhGestionProyecto).toBe(off.hhGestionProyecto);
+  });
+
+  it('no entra en la base de los cargos %: esa base es solo produccion', () => {
+    // Si entrara, los cargos base cobrarian un % de gestion sobre horas de gestion.
+    expect(base).toBe(14);
+    expect(totalRecursosCurso(produccion)).toBe(14);
   });
 });

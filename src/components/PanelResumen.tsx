@@ -15,6 +15,9 @@ export function PanelResumen({ resumen, nCursos }: Props) {
         <div className="tarjeta">
           <span className="tarjeta__label">HH DI / curso</span>
           <span className="tarjeta__valor">{fmt(resumen.hhDICurso)}</span>
+          {resumen.hhGestionDocenteCurso > 0 && (
+            <span className="tarjeta__nota">incluye {fmt(resumen.hhGestionDocenteCurso)} HH de gestión docente</span>
+          )}
         </div>
         <div className="tarjeta">
           <span className="tarjeta__label">HH DG / curso</span>
@@ -63,6 +66,9 @@ export function PanelResumen({ resumen, nCursos }: Props) {
         <div className="tarjeta">
           <span className="tarjeta__label">HH DI total</span>
           <span className="tarjeta__valor">{fmt(resumen.hhDIProyecto)}</span>
+          {resumen.hhGestionDocenteProyecto > 0 && (
+            <span className="tarjeta__nota">incluye {fmt(resumen.hhGestionDocenteProyecto)} HH de gestión docente</span>
+          )}
         </div>
         <div className="tarjeta">
           <span className="tarjeta__label">HH DG total</span>

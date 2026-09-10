@@ -88,6 +88,29 @@ seguimiento, informes— y 271,875 HH (56,4 %) de arranque, arquitectura, piloto
 implementación, que dependen del tamaño y no de la duración. De ahí el 0,56 / 0,44. A 16
 semanas el factor vale exactamente 1; a 32 vale 1,44; a 8 vale 0,78; su piso es 0,56.
 
+### Gestión docente (DI) — toggle de Cubicación (10-09-2026)
+
+El interruptor **«Incluir gestión docente (DI)»** de la pestaña Cubicación (apagado por
+defecto, `ParametrosCurso.gestionDocente`) suma 30 minutos semanales por curso de
+coordinación con el docente:
+
+```
+HH gestión docente = 0,5 × N° cursos × N° semanas
+```
+
+Usa los mismos N° cursos y N° semanas de Parámetros. Se suma a la línea de **HH DI** del
+Resumen (y por lo tanto a Total HH recursos y Total general), **encima** de los cargos base
+de Gestión — no los reemplaza — y **no** entra en la base de los cargos % (si entrara,
+esos cargos cobrarían gestión sobre horas de gestión). Con el toggle activo, la app muestra
+siempre el desglose (`12 cursos × 16 semanas × 0,5 HH = 96 HH`), y el Excel exportado lo
+escribe en la hoja Resumen y guarda el toggle en la columna «Gestión docente (DI)» de
+Parámetros (columna opcional al importar: si falta, queda apagado).
+
+La fórmula supone que todos los cursos están activos todas las semanas. **Decisión de
+Matías:** el toggle cubre el caso estándar; sobre 16 semanas la app avisa (sin bloquear)
+que sobreestima, y en proyectos largos la gestión docente se agrega como tarea desde el
+catálogo. Lógica en `calcularGestionDocente` (`calc.ts`).
+
 ## Desarrollo local
 
 ```bash

@@ -270,3 +270,29 @@ describe('compararProduccion / compararGestion', () => {
     expect(cambiaTipo).toEqual({ nuevas: 0, cambiadas: 1, sinCambios: 0, eliminadas: 0 });
   });
 });
+
+describe('procesarLibroCubicacion — toggle de gestion docente en Parametros', () => {
+  const conColumna = (valor: unknown) =>
+    libroDePrueba({
+      parametros: [
+        { Proyecto: 'P', Cliente: 'C', 'N° cursos': 12, 'N° semanas': 16, Modalidad: 'Full', 'Gestión docente (DI)': valor },
+      ],
+    });
+
+  it('un archivo de antes del toggle (sin la columna) lo deja apagado', () => {
+    const resultado = procesarLibroCubicacion(libroDePrueba({}), CATALOGO);
+    expect(resultado.parametros.gestionDocente).toBe(false);
+  });
+
+  it('"Sí" (lo que escribe el export) lo enciende; "No" y vacio lo dejan apagado', () => {
+    expect(procesarLibroCubicacion(conColumna('Sí'), CATALOGO).parametros.gestionDocente).toBe(true);
+    expect(procesarLibroCubicacion(conColumna('si'), CATALOGO).parametros.gestionDocente).toBe(true);
+    expect(procesarLibroCubicacion(conColumna('No'), CATALOGO).parametros.gestionDocente).toBe(false);
+    expect(procesarLibroCubicacion(conColumna(''), CATALOGO).parametros.gestionDocente).toBe(false);
+  });
+
+  it('la columna es opcional: su ausencia no genera avisos ni rechaza el archivo', () => {
+    const resultado = procesarLibroCubicacion(libroDePrueba({}), CATALOGO);
+    expect(resultado.avisos.some((a) => /docente/i.test(a))).toBe(false);
+  });
+});

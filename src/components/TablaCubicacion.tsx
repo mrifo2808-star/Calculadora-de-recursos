@@ -1,5 +1,11 @@
 import { FRECUENCIAS, type GestionRow, type ProduccionRow, type RecursoCatalogo } from '../types';
-import { calcularProduccion } from '../calc';
+import {
+  AVISO_GESTION_DOCENTE_PROYECTO_LARGO,
+  AYUDA_GESTION_DOCENTE,
+  calcularProduccion,
+  desgloseGestionDocente,
+  type GestionDocente,
+} from '../calc';
 import { fmt } from '../format';
 import { CascadaSelector } from './CascadaSelector';
 import { TablaGestion } from './TablaGestion';
@@ -18,7 +24,11 @@ interface Props {
   baseGestionHH: number;
   onChangeGestion: (rows: GestionRow[]) => void;
   onAddGestion: () => void;
+  /** Toggle «Incluir gestión docente (DI)» ya calculado (ver calcularGestionDocente). */
+  gestionDocente: GestionDocente;
+  onToggleGestionDocente: () => void;
 }
+
 
 const estadoClase: Record<string, string> = {
   OK: 'pill pill--ok',
@@ -43,6 +53,8 @@ export function TablaCubicacion({
   baseGestionHH,
   onChangeGestion,
   onAddGestion,
+  gestionDocente,
+  onToggleGestionDocente,
 }: Props) {
   const calculadas = calcularProduccion(rows, nSemanas, catalogo);
 
@@ -60,6 +72,39 @@ export function TablaCubicacion({
         catalogar». Desactiva una etapa completa (incluida «Gestión del proyecto») con su interruptor si el curso no
         la necesita: sus recursos dejan de sumar horas y desaparecen del cálculo.
       </p>
+
+      <div className={gestionDocente.activa ? 'gestion-docente gestion-docente--activa' : 'gestion-docente'}>
+        <div className="gestion-docente__control">
+          <label className="etapa-toggle gestion-docente__toggle" title={AYUDA_GESTION_DOCENTE}>
+            <input
+              type="checkbox"
+              checked={gestionDocente.activa}
+              onChange={onToggleGestionDocente}
+              aria-describedby="gestion-docente-ayuda"
+            />
+            <span className="etapa-toggle__pista" aria-hidden="true" />
+            <span className="etapa-toggle__texto">Incluir gestión docente (DI)</span>
+          </label>
+          <p id="gestion-docente-ayuda" className="gestion-docente__ayuda">
+            {AYUDA_GESTION_DOCENTE}
+          </p>
+        </div>
+        {gestionDocente.activa && (
+          <div className="gestion-docente__resultado" aria-live="polite">
+            <p className="panel__formula gestion-docente__desglose">{desgloseGestionDocente(gestionDocente)}</p>
+            <p className="panel__hint">
+              Se suma a HH DI ({fmt(gestionDocente.hhPorCurso)} HH por curso), encima de los cargos de Gestión del
+              proyecto. N° cursos y N° semanas se editan en Parámetros, arriba.
+            </p>
+            {gestionDocente.avisoProyectoLargo && (
+              <p className="panel__hint panel__hint--aviso" role="note">
+                {AVISO_GESTION_DOCENTE_PROYECTO_LARGO}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
       {ETAPAS.map((etapa) => {
         const activa = etapasActivas[etapa] !== false;
         const esGestion = etapa === ETAPA_GESTION;

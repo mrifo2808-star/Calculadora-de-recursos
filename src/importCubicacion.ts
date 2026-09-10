@@ -96,6 +96,17 @@ function comoActiva(valor: unknown): boolean {
   return !(texto.startsWith('no') || texto === 'false' || texto === '0');
 }
 
+/** Columna opcional «Gestión docente (DI)» de la hoja Parametros. Al revés que
+ * `comoActiva`, el valor por defecto es FALSE: un archivo exportado antes de que existiera
+ * el toggle (sin la columna) o con la celda vacía no debe sumar horas que su autor nunca
+ * pidió. Solo un "sí" explícito (con o sin tilde, o "true"/"1"/"x") la activa. */
+export const COLUMNA_GESTION_DOCENTE = 'Gestión docente (DI)';
+
+function comoSiExplicito(valor: unknown): boolean {
+  const texto = comoTexto(valor).toLowerCase();
+  return texto === 'sí' || texto === 'si' || texto === 'true' || texto === '1' || texto === 'x';
+}
+
 /** Columna vacía/ausente (archivo de antes de que existiera este campo) -> 'fijo', que
  * es exactamente el comportamiento que ya tenía toda fila de Gestion. Cualquier texto
  * que mencione "%"/"porcentaje" -> 'porcentaje'; cualquier otra cosa -> 'fijo'. */
@@ -160,6 +171,8 @@ export function procesarLibroCubicacion(buffer: ArrayBuffer, catalogo: RecursoCa
     nCursos: Math.max(1, Math.round(comoNumero(filaParametros['N° cursos'], 1, avisos, 'Parámetros', 'N° cursos'))),
     nSemanas: Math.max(1, Math.round(comoNumero(filaParametros['N° semanas'], 1, avisos, 'Parámetros', 'N° semanas'))),
     modalidad: comoTexto(filaParametros['Modalidad']),
+    // Columna opcional (no está en COLUMNAS_PARAMETROS): archivos anteriores no la traen.
+    gestionDocente: comoSiExplicito(filaParametros[COLUMNA_GESTION_DOCENTE]),
   };
 
   // ── Gestion ──────────────────────────────────────────────────────────────────────

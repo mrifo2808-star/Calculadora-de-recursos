@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { ParametrosCurso } from './types';
-import type { GestionCalculada, ProduccionCalculada, Resumen } from './calc';
+import { calcularGestionDocente, desgloseGestionDocente, type GestionCalculada, type ProduccionCalculada, type Resumen } from './calc';
+import { COLUMNA_GESTION_DOCENTE } from './importCubicacion';
 
 interface DatosExport {
   parametros: ParametrosCurso;
@@ -24,9 +25,14 @@ export function descargarCubicacionExcel(datos: DatosExport): void {
       'N° cursos': parametros.nCursos,
       'N° semanas': parametros.nSemanas,
       Modalidad: parametros.modalidad,
+      // Mismo nombre de columna que lee importCubicacion.ts, para que el toggle viaje
+      // de ida y vuelta con el archivo.
+      [COLUMNA_GESTION_DOCENTE]: parametros.gestionDocente ? 'Sí' : 'No',
     },
   ]);
-  hojaParametros['!cols'] = [{ wch: 28 }, { wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 14 }];
+  hojaParametros['!cols'] = [{ wch: 28 }, { wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 20 }];
+
+  const gestionDocente = calcularGestionDocente(parametros.gestionDocente, parametros.nCursos, parametros.nSemanas);
 
   const hojaGestion = XLSX.utils.json_to_sheet(
     gestion.map((r) => ({
@@ -76,6 +82,18 @@ export function descargarCubicacionExcel(datos: DatosExport): void {
 
   const filasResumen = [
     { Concepto: 'HH DI', 'Por curso': resumen.hhDICurso, Proyecto: resumen.hhDIProyecto },
+    // Solo si el toggle está activo: cuánto de HH DI es gestión docente, y su desglose
+    // literal para auditarlo sin abrir la app.
+    ...(gestionDocente.activa
+      ? [
+          {
+            Concepto: '   incluye gestión docente (DI)',
+            'Por curso': resumen.hhGestionDocenteCurso,
+            Proyecto: resumen.hhGestionDocenteProyecto,
+          },
+          { Concepto: `   ${desgloseGestionDocente(gestionDocente)}`, 'Por curso': '', Proyecto: '' },
+        ]
+      : []),
     { Concepto: 'HH DG', 'Por curso': resumen.hhDGCurso, Proyecto: resumen.hhDGProyecto },
     { Concepto: 'HH SOP', 'Por curso': resumen.hhSOPCurso, Proyecto: resumen.hhSOPProyecto },
     { Concepto: 'Total HH recursos', 'Por curso': resumen.totalRecursosCurso, Proyecto: resumen.totalRecursosProyecto },
@@ -90,7 +108,7 @@ export function descargarCubicacionExcel(datos: DatosExport): void {
     ...resumen.subtotalesPorSeccion.map((s) => ({ Concepto: `Subtotal — ${s.seccion}`, 'Por curso': s.total, Proyecto: '' })),
   ];
   const hojaResumen = XLSX.utils.json_to_sheet(filasResumen);
-  hojaResumen['!cols'] = [{ wch: 36 }, { wch: 14 }, { wch: 14 }];
+  hojaResumen['!cols'] = [{ wch: 44 }, { wch: 14 }, { wch: 14 }];
 
   const libro = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(libro, hojaParametros, 'Parametros');

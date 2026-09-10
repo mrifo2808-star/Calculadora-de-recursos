@@ -10,6 +10,7 @@ import {
   etapasActivasDefault,
   PARAMETROS_DEFAULT,
   gestionDefault,
+  migrarParametros,
   nextId,
   nuevaFilaGestion,
   nuevaFilaProduccion,
@@ -18,7 +19,7 @@ import {
   resetContadorId,
   SECCIONES,
 } from './data/plantilla';
-import { calcularGestion, calcularProduccion, calcularResumen, totalRecursosCurso } from './calc';
+import { calcularGestion, calcularGestionDocente, calcularProduccion, calcularResumen, totalRecursosCurso } from './calc';
 import type { GestionRow, ParametrosCurso, ProduccionRow } from './types';
 import { useCatalog } from './CatalogContext';
 import { useAccess } from './AccessGate';
@@ -78,7 +79,9 @@ function estadoInicial(): Estado {
     if (raw) {
       const guardado = JSON.parse(raw) as Partial<Estado>;
       return {
-        parametros: guardado.parametros ?? PARAMETROS_DEFAULT,
+        // Parametros guardados antes del toggle de gestion docente no traen
+        // `gestionDocente`: quedan con el toggle apagado (ver migrarParametros).
+        parametros: migrarParametros(guardado.parametros),
         gestion: migrarGestion(guardado.gestion as GestionRowGuardada[] | undefined),
         produccion: guardado.produccion ?? produccionDefault(),
         // Merge con el default: estados guardados antes de esta funcionalidad no tienen
@@ -125,7 +128,7 @@ function App() {
     return () => observer.disconnect();
   }, []);
 
-  const { produccionCalc, gestionCalc, resumen, baseGestionHH } = useMemo(() => {
+  const { produccionCalc, gestionCalc, resumen, baseGestionHH, gestionDocente } = useMemo(() => {
     // Una etapa desactivada excluye TODAS sus filas del calculo y de la exportacion. En
     // Gestion ademas cada fila individual puede desactivarse (se mantiene visible en la
     // exportacion, para dejar registro, pero se excluye de los totales de Resumen). En
@@ -142,9 +145,22 @@ function App() {
     const gestionCalc = calcularGestion(gestionEnEtapaActiva, estado.parametros.nSemanas, baseGestionHH);
 
     const gestionParaTotales = gestionCalc.filter((r) => r.activa !== false);
-    const resumen = calcularResumen(produccionCalc, gestionParaTotales, estado.parametros.nCursos, seccionesActivas);
+    // Gestion docente estandar (toggle de Cubicacion): se suma a la linea de DI del
+    // Resumen, DESPUES de calcular Gestion — nunca entra en `baseGestionHH`.
+    const gestionDocente = calcularGestionDocente(
+      estado.parametros.gestionDocente === true,
+      estado.parametros.nCursos,
+      estado.parametros.nSemanas,
+    );
+    const resumen = calcularResumen(
+      produccionCalc,
+      gestionParaTotales,
+      estado.parametros.nCursos,
+      seccionesActivas,
+      gestionDocente.hhPorCurso,
+    );
 
-    return { produccionCalc, gestionCalc, resumen, baseGestionHH };
+    return { produccionCalc, gestionCalc, resumen, baseGestionHH, gestionDocente };
   }, [estado, catalogo]);
 
   const resetPlantilla = async () => {
@@ -270,6 +286,10 @@ function App() {
           baseGestionHH={baseGestionHH}
           onChangeGestion={(gestion) => setEstado((e) => ({ ...e, gestion }))}
           onAddGestion={() => setEstado((e) => ({ ...e, gestion: [...e.gestion, nuevaFilaGestion()] }))}
+          gestionDocente={gestionDocente}
+          onToggleGestionDocente={() =>
+            setEstado((e) => ({ ...e, parametros: { ...e.parametros, gestionDocente: !e.parametros.gestionDocente } }))
+          }
         />
       </div>
       <div id="panel-catalogo" role="tabpanel" aria-labelledby="tab-catalogo" style={{ display: vista === 'catalogo' ? 'block' : 'none' }}>
