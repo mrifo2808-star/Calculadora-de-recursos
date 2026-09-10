@@ -58,29 +58,26 @@ clases de fila, distinguidas por si son o no editables desde la interfaz (column
 
 ### De dónde salen los porcentajes de los cargos base (10-09-2026)
 
-Del modelo de estimación institucional `MODELO_ESTIMACION_v02.00.xlsx`. Cada porcentaje
-es las HH que el modelo cubica para ese rol divididas por las **3.121,61 HH de trabajo
-productivo** de su proyecto de referencia (3.500 HH nominales en 16 semanas):
+Del modelo de estimación institucional `MODELO_ESTIMACION_v02.00.xlsx`, cubicación
+validada por la Gerencia de Operaciones. Cada porcentaje es las HH que el modelo cubica
+para ese rol divididas por las **3.500 HH** de su proyecto de referencia (16 semanas):
 
-| Cargo | HH del modelo | % (HH ÷ 3.121,61) |
+| Cargo | HH del modelo | % (HH ÷ 3.500) |
 |---|--:|--:|
-| Gestion JP | 108,75 | 3,48 % |
-| Gestion DI Senior | 161,25 | 5,17 % |
-| Gestion DG Senior | 56,25 | 1,80 % |
-| Gestion Sop Senior | 56,25 | 1,80 % |
-| Gestion DI TL | 39,375 | 1,26 % |
-| Gestion DG TL | 30 | 0,96 % |
-| Gestion Sop TL | 30 | 0,96 % |
-| **Total** | **481,875** | **15,43 %** |
+| Gestion JP | 108,75 | 3,107 % |
+| Gestion DI Senior | 161,25 | 4,607 % |
+| Gestion DG Senior | 56,25 | 1,607 % |
+| Gestion Sop Senior | 56,25 | 1,607 % |
+| Gestion DI TL | 39,375 | 1,125 % |
+| Gestion DG TL | 30 | 0,857 % |
+| Gestion Sop TL | 30 | 0,857 % |
+| **Total** | **481,875** | **13,767 %** |
 
-El ratio exacto es 15,4367 %; los 7 porcentajes redondeados a dos decimales suman
-15,43 %, ~0,2 HH menos sobre el proyecto de referencia. **Ojo con la base**: el divisor
-son las 3.121,61 HH de *producción*, no las 3.500 HH nominales (que incluyen la gestión
-misma). Una cubicación con 3.121,61 HH de producción da ≈481,7 HH de gestión; una con
-3.500 HH da ≈540 HH.
+El ratio exacto es 13,7679 %; los 7 porcentajes redondeados a tres decimales suman
+13,767 %, ~0,03 HH menos sobre el proyecto de referencia (0,006 %).
 
 Estos valores **reemplazan** a los fijados a ojo el 27-08-2026 (JP 30 %, Senior
-20/5/5 %, TL 5/5/5 % = **75 %** de la producción), que estaban casi 5× por sobre el
+20/5/5 %, TL 5/5/5 % = **75 %** de la producción), que estaban ~5,4× por sobre el
 modelo. Toda cubicación anterior arroja ahora un total menor.
 
 **El ajuste por duración** (`factorDuracionGestion` en `calc.ts`) existe porque antes la

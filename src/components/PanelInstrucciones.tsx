@@ -66,8 +66,8 @@ export function PanelInstrucciones() {
       </p>
       <p className="panel__texto">
         Los porcentajes salen del modelo de estimación institucional, calibrado sobre un proyecto de 3.500 horas en
-        16 semanas: JP 3,48 %, DI Senior 5,17 %, DI TL 1,26 %, DG Senior 1,80 %, DG TL 0,96 %, Soporte Senior
-        1,80 %, Soporte TL 0,96 %. En total, 15,43 % de las horas de producción.
+        16 semanas: JP 3,107 %, DI Senior 4,607 %, DI TL 1,125 %, DG Senior 1,607 %, DG TL 0,857 %, Soporte Senior
+        1,607 %, Soporte TL 0,857 %. En total, 13,77 % de las horas de producción.
       </p>
       <p className="panel__texto">
         El ajuste por duración existe porque la gestión tiene dos partes: un 56 % que depende del tamaño del
