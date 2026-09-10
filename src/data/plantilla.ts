@@ -25,18 +25,39 @@ export const PARAMETROS_DEFAULT: ParametrosCurso = {
  * de eliminar — solo se pueden activar/desactivar). Para cambiar un porcentaje o
  * agregar/quitar un cargo base, editar esta lista y hacer un deploy nuevo.
  *
- * Definidos por Matías el 27-08-2026 (JP 30%, Senior DI/DG/Sop 20/5/5%, Jefes de Área
- * TL DI/DG/Sop 5% cada uno); confirmados como "los de base, van siempre" y bloqueados
- * a edición desde la interfaz el mismo día.
+ * ORIGEN DE LOS PORCENTAJES (10-09-2026) — modelo de estimación institucional
+ * `MODELO_ESTIMACION_v02.00.xlsx`. Cada porcentaje es las HH que el modelo cubica para
+ * ese rol, divididas por las 3.121,61 HH de trabajo productivo de su proyecto de
+ * referencia (3.500 HH nominales en 16 semanas):
+ *
+ *     JP      108,75 HH / 3.121,61 = 3,48 %      DI TL    39,375 HH = 1,26 %
+ *     DI S    161,25 HH            = 5,17 %      DG TL    30 HH     = 0,96 %
+ *     DG S     56,25 HH            = 1,80 %      Sop TL   30 HH     = 0,96 %
+ *     Sop S    56,25 HH            = 1,80 %
+ *                                   ----------------------------------------
+ *     Total   481,875 HH / 3.121,61 = 15,4367 %  → 15,43 % sumando los redondeos
+ *
+ * OJO con la base: el divisor es 3.121,61 HH de PRODUCCIÓN, no las 3.500 HH nominales
+ * del proyecto de referencia. Una cubicación con 3.121,61 HH de producción da ≈481,7 HH
+ * de gestión (las 481,875 del modelo, salvo redondeo); una con 3.500 HH da ≈540 HH.
+ *
+ * Estos porcentajes REEMPLAZAN a los definidos a ojo por Matías el 27-08-2026 (JP 30 %,
+ * Senior DI/DG/Sop 20/5/5 %, TL DI/DG/Sop 5 % c/u = 75 % del total de producción), que
+ * estaban casi 5× por sobre el modelo institucional. Toda cubicación hecha antes de
+ * este cambio arroja ahora un total menor — ver VALIDAR-gestion-modelo-institucional-20260910.md.
+ *
+ * Los cargos base además se ajustan por la duración del proyecto (ver
+ * `factorDuracionGestion` en calc.ts): estos porcentajes son los del proyecto de
+ * referencia de 16 semanas, donde ese factor vale exactamente 1.
  * ========================================================================== */
 export const CARGOS_BASE_GESTION: readonly { cargo: string; porcentaje: number }[] = [
-  { cargo: 'Gestion JP', porcentaje: 30 },
-  { cargo: 'Gestion DI Senior', porcentaje: 20 },
-  { cargo: 'Gestion DG Senior', porcentaje: 5 },
-  { cargo: 'Gestion Sop Senior', porcentaje: 5 },
-  { cargo: 'Gestion DI TL', porcentaje: 5 },
-  { cargo: 'Gestion DG TL', porcentaje: 5 },
-  { cargo: 'Gestion Sop TL', porcentaje: 5 },
+  { cargo: 'Gestion JP', porcentaje: 3.48 },
+  { cargo: 'Gestion DI Senior', porcentaje: 5.17 },
+  { cargo: 'Gestion DG Senior', porcentaje: 1.8 },
+  { cargo: 'Gestion Sop Senior', porcentaje: 1.8 },
+  { cargo: 'Gestion DI TL', porcentaje: 1.26 },
+  { cargo: 'Gestion DG TL', porcentaje: 0.96 },
+  { cargo: 'Gestion Sop TL', porcentaje: 0.96 },
 ];
 
 const cargoBase = (cargo: string, porcentaje: number, rowId?: string, activa?: boolean): GestionRow => ({

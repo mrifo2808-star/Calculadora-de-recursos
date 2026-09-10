@@ -56,7 +56,27 @@ export function PanelInstrucciones() {
         (cuántas filas faltan por catalogar).
       </p>
 
-      <h3>5. Acceso</h3>
+      <h3>5. Cómo se calculan las horas de gestión</h3>
+      <p className="panel__texto">
+        Los siete cargos base —JP, y el Team Lead y el Senior de DI, DG y Soporte— no consumen catálogo: se calculan
+        como un porcentaje de las horas de producción del proyecto, ajustado por su duración.
+      </p>
+      <p className="panel__formula">
+        Horas de gestión = % del cargo × horas de producción × (0,56 + 0,44 × semanas ÷ 16)
+      </p>
+      <p className="panel__texto">
+        Los porcentajes salen del modelo de estimación institucional, calibrado sobre un proyecto de 3.500 horas en
+        16 semanas: JP 3,48 %, DI Senior 5,17 %, DI TL 1,26 %, DG Senior 1,80 %, DG TL 0,96 %, Soporte Senior
+        1,80 %, Soporte TL 0,96 %. En total, 15,43 % de las horas de producción.
+      </p>
+      <p className="panel__texto">
+        El ajuste por duración existe porque la gestión tiene dos partes: un 56 % que depende del tamaño del
+        proyecto —arranque, arquitectura, piloto, implementación— y un 44 % que depende del calendario —comités,
+        seguimiento, informes semanales—. A 16 semanas el ajuste vale 1 y no cambia nada; un proyecto de la misma
+        envergadura pero de 32 semanas suma un 44 % más de gestión.
+      </p>
+
+      <h3>6. Acceso</h3>
       <p className="panel__texto">
         La clave de acceso es compartida por todo el equipo. La sesión queda guardada en el dispositivo hasta usar
         «Cerrar sesión» (al final de la página).

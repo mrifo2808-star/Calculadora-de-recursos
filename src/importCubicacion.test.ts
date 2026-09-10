@@ -162,7 +162,7 @@ describe('procesarLibroCubicacion — filas de Gestion', () => {
     const resultado = procesarLibroCubicacion(buffer, CATALOGO);
     const jp = resultado.gestion.find((g) => g.cargo === 'Gestion JP')!;
     expect(jp.tipo).toBe('porcentaje');
-    expect(jp.porcentaje).toBe(30);
+    expect(jp.porcentaje).toBe(3.48);
     expect(jp.removable).toBe(false);
   });
 
