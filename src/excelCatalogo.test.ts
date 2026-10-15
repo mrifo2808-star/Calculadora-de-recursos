@@ -227,8 +227,10 @@ describe('procesarLibroCatalogo — catalogo v1 de SharePoint', () => {
     delete sinNombre['Nombre visible (artefactos)'];
     const r = procesarLibroCatalogo(libroDePrueba([sinNombre, sinNombre]));
     expect(r.filasValidas).toBe(0);
-    expect(r.avisos[0].severidad).toBe('bloqueante');
-    expect(r.avisos[0].mensaje).toMatch(/ninguna pudo leerse/i);
+    // El aviso global va al final: `avisos` esta ordenado por fila y la prioridad la
+    // lleva la severidad, no la posicion.
+    expect(r.avisos.every((a) => a.severidad === 'bloqueante')).toBe(true);
+    expect(r.avisos.some((a) => /ninguna pudo leerse/i.test(a.mensaje))).toBe(true);
   });
 
   it('clasifica los avisos por severidad y mantiene erroresFila', () => {

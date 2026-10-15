@@ -230,8 +230,12 @@ export function procesarLibroCatalogo(buffer: ArrayBuffer): ResultadoImportacion
 
   // Un archivo con filas donde NINGUNA entro es casi siempre un encabezado renombrado,
   // no 139 filas mal llenadas. Decirlo en esos terminos ahorra la busqueda.
+  //
+  // Va al FINAL y no al principio a proposito: `avisos` esta ordenado por fila del Excel
+  // y quien lo lee cuenta con eso. La prioridad la lleva `severidad`, que es justamente
+  // para no tener que codificarla en el orden.
   if (filas.length > 0 && mapa.size === 0) {
-    avisos.unshift({
+    avisos.push({
       severidad: 'bloqueante',
       fila: null,
       mensaje:
