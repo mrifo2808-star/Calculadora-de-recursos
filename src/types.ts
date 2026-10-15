@@ -7,6 +7,12 @@ export interface RecursoCatalogo {
   nombreVisible: string;
   extension: string;
   unidad: string;
+  /** Cuarto segmento del ID tecnico, p.ej. «Entrega en carpeta» o «Entrega en carpeta y
+   * carga en LMS». Es lo unico que distingue dos recursos con el mismo nombre y la misma
+   * extension, asi que tiene que llegar a la interfaz. Opcional porque se deriva del ID
+   * (ver alcanceDesdeId): el catalogo incorporado en el codigo y las filas guardadas en
+   * Supabase no lo traen, se recalcula al leerlas. */
+  alcanceEntrega?: string;
   di: number | null;
   dg: number | null;
   sop: number | null;

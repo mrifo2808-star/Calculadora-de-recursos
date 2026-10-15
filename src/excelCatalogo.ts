@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { EstadoCatalogo, RecursoCatalogo } from './types';
 import { catalogoWorkerUrl, urlConForzado } from './catalogoSharePoint';
+import { alcanceDesdeId } from './catalogoIds';
 
 const HOJA = 'Catalogo';
 const COLUMNAS = [
@@ -18,6 +19,62 @@ const COLUMNAS = [
 ] as const;
 
 const ESTADOS_VALIDOS: EstadoCatalogo[] = ['Validado', 'Pendiente', 'Historico'];
+
+/** Encabezados aceptados para cada columna del catalogo compartido.
+ *
+ * Existen porque la planilla de SharePoint se edita a mano y sus encabezados han ido
+ * cambiando: tildes, parentesis, y nombres que se renombraron entre ciclos. Antes el
+ * parser leia `fila['Nombre visible']` por coincidencia EXACTA, asi que el dia que la
+ * columna paso a llamarse «Nombre visible (artefactos)» el catalogo entero dejo de
+ * leerse en silencio. */
+const ENCABEZADOS = {
+  estado: ['Estado'],
+  tipo: ['Tipo'],
+  nombre: ['Nombre visible', 'Nombre visible (artefactos)'],
+  extension: ['Extension'],
+  unidad: ['Unidad'],
+  di: ['DI (HH)'],
+  dg: ['DG (HH)'],
+  // «SOP (HH)» es el TOTAL de Soporte. En el catalogo v1 es una formula que suma «QA de
+  // recursos» e «Implementacion»; se lee el total, nunca los componentes, para no
+  // contarlos dos veces. «VOP (HH)» y «QA Final (HH)» son como se llamo antes.
+  sop: ['SOP (HH)', 'VOP (HH)', 'QA Final (HH)'],
+  id: ['ID tecnico'],
+  fuente: ['Fuente'],
+  observaciones: ['Observaciones', 'Alcance'],
+} as const;
+
+/** Normaliza un encabezado para compararlo: sin tildes, sin espacios (incluido el
+ * espacio sin separacion U+00A0, que `\s` cubre) y en minusculas. Es lo que permite leer
+ * «Extension» y «Extensión», o «Soporte(HH)» y «Soporte (HH)», sin depender de como se
+ * haya tipeado la cabecera en la planilla compartida. */
+function normalizarClave(clave: string): string {
+  return clave
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '')
+    .toLowerCase();
+}
+
+/** Busca el valor de una celda por cualquiera de los encabezados dados, comparando de
+ * forma normalizada. undefined si ninguna columna del archivo coincide. */
+function celda(fila: Record<string, unknown>, encabezados: readonly string[]): unknown {
+  const buscados = encabezados.map(normalizarClave);
+  for (const [clave, valor] of Object.entries(fila)) {
+    if (buscados.includes(normalizarClave(clave))) return valor;
+  }
+  return undefined;
+}
+
+export type SeveridadAviso = 'bloqueante' | 'dato' | 'revision';
+
+export interface AvisoCatalogo {
+  severidad: SeveridadAviso;
+  /** Fila del Excel, o null para un aviso sobre el archivo completo. */
+  fila: number | null;
+  mensaje: string;
+}
+
 
 export function descargarCatalogoExcel(catalogo: RecursoCatalogo[], nombreArchivo?: string): void {
   const filas = catalogo.map((r) => ({
@@ -59,7 +116,14 @@ export interface ResultadoImportacionCatalogo {
   catalogo: RecursoCatalogo[];
   filasLeidas: number;
   filasValidas: number;
+  /** Filas sin Tipo o sin Nombre visible, que no entraron al catalogo. */
+  filasDescartadas: number;
   duplicadosFusionados: number;
+  /** CUALES IDs se repitieron, no solo cuantos: sin esto no hay como ir a buscarlos a la
+   * planilla. */
+  idsDuplicados: string[];
+  avisos: AvisoCatalogo[];
+  /** Se mantiene para no romper a quien ya lo usa: mismos textos que `avisos`. */
   erroresFila: string[];
 }
 
@@ -69,7 +133,13 @@ function comoTexto(valor: unknown): string {
 
 function comoNumero(valor: unknown): number | null {
   if (valor === undefined || valor === null || valor === '') return null;
-  const n = typeof valor === 'number' ? valor : Number(String(valor).replace(',', '.'));
+  if (typeof valor === 'number') return Number.isFinite(valor) ? valor : null;
+  // Se limpian TODOS los espacios (incluido U+00A0, el que deja Excel al pegar celdas) y
+  // se acepta coma decimal: en la planilla compartida hay horas guardadas como texto en
+  // formato es-CL, del tipo «0,30», que de otro modo se perderian.
+  const limpio = String(valor).replace(/\s/g, '').replace(',', '.');
+  if (limpio === '') return null;
+  const n = Number(limpio);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -100,28 +170,47 @@ export function procesarLibroCatalogo(buffer: ArrayBuffer): ResultadoImportacion
   const filas = XLSX.utils.sheet_to_json<Record<string, unknown>>(hoja, { defval: '' });
 
   const mapa = new Map<string, RecursoCatalogo>();
-  const erroresFila: string[] = [];
+  const avisos: AvisoCatalogo[] = [];
+  const idsDuplicados: string[] = [];
   let duplicadosFusionados = 0;
+  let filasDescartadas = 0;
 
   filas.forEach((fila, indice) => {
     const numeroFilaExcel = indice + 2; // +1 por header, +1 por indice 0-based
-    const tipo = comoTexto(fila['Tipo']);
-    const nombreVisible = comoTexto(fila['Nombre visible']);
+    const tipo = comoTexto(celda(fila, ENCABEZADOS.tipo));
+    const nombreVisible = comoTexto(celda(fila, ENCABEZADOS.nombre));
     if (!tipo || !nombreVisible) {
-      erroresFila.push(`Fila ${numeroFilaExcel}: falta Tipo o Nombre visible, se omite.`);
+      filasDescartadas += 1;
+      avisos.push({
+        severidad: 'bloqueante',
+        fila: numeroFilaExcel,
+        mensaje: `Fila ${numeroFilaExcel}: falta Tipo o Nombre visible, se omite.`,
+      });
       return;
     }
 
-    const extension = comoTexto(fila['Extension']);
-    let estado = comoTexto(fila['Estado']) as EstadoCatalogo;
+    const extension = comoTexto(celda(fila, ENCABEZADOS.extension));
+    let estado = comoTexto(celda(fila, ENCABEZADOS.estado)) as EstadoCatalogo;
     if (!ESTADOS_VALIDOS.includes(estado)) {
-      erroresFila.push(`Fila ${numeroFilaExcel}: Estado "${estado || '(vacio)'}" invalido, se usa "Pendiente".`);
+      avisos.push({
+        severidad: 'dato',
+        fila: numeroFilaExcel,
+        mensaje: `Fila ${numeroFilaExcel}: Estado "${estado || '(vacio)'}" invalido, se usa "Pendiente".`,
+      });
       estado = 'Pendiente';
     }
 
-    let id = comoTexto(fila['ID tecnico']);
+    let id = comoTexto(celda(fila, ENCABEZADOS.id));
     if (!id) id = generarId(tipo, nombreVisible, extension, new Set(mapa.keys()));
-    if (mapa.has(id)) duplicadosFusionados += 1;
+    if (mapa.has(id)) {
+      duplicadosFusionados += 1;
+      if (!idsDuplicados.includes(id)) idsDuplicados.push(id);
+      avisos.push({
+        severidad: 'revision',
+        fila: numeroFilaExcel,
+        mensaje: `Fila ${numeroFilaExcel}: el ID tecnico "${id}" ya existe en el archivo. Se conserva esta fila y se descarta la anterior.`,
+      });
+    }
 
     mapa.set(id, {
       id,
@@ -129,21 +218,41 @@ export function procesarLibroCatalogo(buffer: ArrayBuffer): ResultadoImportacion
       tipo,
       nombreVisible,
       extension,
-      unidad: comoTexto(fila['Unidad']),
-      di: comoNumero(fila['DI (HH)']),
-      dg: comoNumero(fila['DG (HH)']),
-      sop: comoNumero(fila['SOP (HH)']),
-      fuente: comoTexto(fila['Fuente']),
-      observaciones: comoTexto(fila['Observaciones']),
+      unidad: comoTexto(celda(fila, ENCABEZADOS.unidad)),
+      alcanceEntrega: alcanceDesdeId(id),
+      di: comoNumero(celda(fila, ENCABEZADOS.di)),
+      dg: comoNumero(celda(fila, ENCABEZADOS.dg)),
+      sop: comoNumero(celda(fila, ENCABEZADOS.sop)),
+      fuente: comoTexto(celda(fila, ENCABEZADOS.fuente)),
+      observaciones: comoTexto(celda(fila, ENCABEZADOS.observaciones)),
     });
   });
+
+  // Un archivo con filas donde NINGUNA entro es casi siempre un encabezado renombrado,
+  // no 139 filas mal llenadas. Decirlo en esos terminos ahorra la busqueda.
+  //
+  // Va al FINAL y no al principio a proposito: `avisos` esta ordenado por fila del Excel
+  // y quien lo lee cuenta con eso. La prioridad la lleva `severidad`, que es justamente
+  // para no tener que codificarla en el orden.
+  if (filas.length > 0 && mapa.size === 0) {
+    avisos.push({
+      severidad: 'bloqueante',
+      fila: null,
+      mensaje:
+        `El archivo tiene ${filas.length} filas y ninguna pudo leerse. ` +
+        'Revisa que la hoja se llame "Catalogo" y que existan las columnas "Tipo" y "Nombre visible".',
+    });
+  }
 
   return {
     catalogo: Array.from(mapa.values()),
     filasLeidas: filas.length,
     filasValidas: mapa.size,
+    filasDescartadas,
     duplicadosFusionados,
-    erroresFila,
+    idsDuplicados,
+    avisos,
+    erroresFila: avisos.map((a) => a.mensaje),
   };
 }
 
@@ -180,11 +289,26 @@ export async function obtenerCatalogoDesdeSharePoint(forzar: boolean): Promise<R
   }
 
   const buffer = await respuesta.arrayBuffer();
+  let resultado: ResultadoImportacionCatalogo;
   try {
-    return procesarLibroCatalogo(buffer);
+    resultado = procesarLibroCatalogo(buffer);
   } catch {
     throw new Error(
       'El archivo recibido no se pudo leer como Excel. El catálogo actual se mantiene sin cambios; reintenta con «Actualizar catálogo» y si persiste, avisa a quien administra el Worker de catálogo.',
     );
   }
+
+  // Un catálogo que se descarga bien pero queda VACÍO es peor que uno que falla: la app
+  // sigue andando y quien cubica no tiene cómo saber que está calculando sobre nada. Se
+  // trata igual que una falla de descarga para que CatalogContext conserve el catálogo
+  // anterior en vez de reemplazarlo por cero filas.
+  if (resultado.filasLeidas > 0 && resultado.filasValidas === 0) {
+    throw new Error(
+      `El catálogo se descargó pero ninguna de sus ${resultado.filasLeidas} filas pudo leerse. ` +
+        'Suele ser un encabezado renombrado en la planilla: revisa que existan las columnas "Tipo" y "Nombre visible". ' +
+        'El catálogo actual se mantiene sin cambios.',
+    );
+  }
+
+  return resultado;
 }

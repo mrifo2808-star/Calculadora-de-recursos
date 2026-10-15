@@ -1,6 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { RecursoCatalogo } from './types';
 import { CATALOGO_BASE } from './data/catalogo';
+// Modulo sin dependencias a proposito: importar esto desde excelCatalogo.ts arrastraria
+// xlsx (~500 KB) al bundle principal, que es justo lo que el import() dinamico evita.
+import { alcanceDesdeId } from './catalogoIds';
 import { supabase, supabaseConfigurado } from './supabaseClient';
 import {
   catalogoWorkerConfigurado,
@@ -34,6 +37,9 @@ const filaDBaRecurso = (f: FilaCatalogoDB): RecursoCatalogo => ({
   nombreVisible: f.nombre_visible,
   extension: f.extension,
   unidad: f.unidad,
+  // Supabase no guarda el alcance: se recalcula desde el ID en cada lectura, que es su
+  // unica fuente de verdad.
+  alcanceEntrega: alcanceDesdeId(f.id),
   di: f.di,
   dg: f.dg,
   sop: f.sop,
