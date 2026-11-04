@@ -14,6 +14,8 @@ import { ETAPA_GESTION, ETAPAS } from '../data/plantilla';
 interface Props {
   rows: ProduccionRow[];
   nSemanas: number;
+  /** N° de unidades del curso: Factor de las filas con Frecuencia «Por unidad». */
+  nUnidades: number;
   catalogo: RecursoCatalogo[];
   etapasActivas: Record<string, boolean>;
   onToggleEtapa: (etapa: string) => void;
@@ -30,6 +32,12 @@ interface Props {
 }
 
 
+/** Aviso de la columna Frecuencia cuando el catálogo marca el recurso como "por unidad"
+ * y la fila quedó en otra Frecuencia (así no se multiplica por el N° de unidades). */
+export const AVISO_RECURSO_POR_UNIDAD =
+  'El catálogo cotiza este recurso por unidad del curso. Para que se multiplique por el N° de unidades, ' +
+  'elige la Frecuencia «Por unidad».';
+
 const estadoClase: Record<string, string> = {
   OK: 'pill pill--ok',
   'PENDIENTE DE CATALOGAR': 'pill pill--pendiente',
@@ -44,6 +52,7 @@ const etiquetaEtapa = (etapa: string): string => (etapa === ETAPA_GESTION ? 'Ges
 export function TablaCubicacion({
   rows,
   nSemanas,
+  nUnidades,
   catalogo,
   etapasActivas,
   onToggleEtapa,
@@ -56,7 +65,7 @@ export function TablaCubicacion({
   gestionDocente,
   onToggleGestionDocente,
 }: Props) {
-  const calculadas = calcularProduccion(rows, nSemanas, catalogo);
+  const calculadas = calcularProduccion(rows, nSemanas, catalogo, nUnidades);
 
   const update = (rowId: string, patch: Partial<ProduccionRow>) =>
     onChange(rows.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r)));
@@ -71,6 +80,12 @@ export function TablaCubicacion({
         muestran recursos <strong>Validados</strong> del catálogo. Sin selección completa, la fila queda «Pendiente de
         catalogar». Desactiva una etapa completa (incluida «Gestión del proyecto») con su interruptor si el curso no
         la necesita: sus recursos dejan de sumar horas y desaparecen del cálculo.
+      </p>
+      <p className="panel__hint">
+        Los recursos que el catálogo cotiza <strong>por unidad</strong> («Unidad» = <code>unidad</code>) van con
+        Frecuencia <strong>«Por unidad»</strong>: se multiplican por las{' '}
+        <strong>{fmt(nUnidades)} unidad{nUnidades === 1 ? '' : 'es'}</strong> declaradas en Parámetros, arriba. La
+        tabla avisa (⚠) si eliges uno de esos recursos y dejas otra Frecuencia.
       </p>
 
       <div className={gestionDocente.activa ? 'gestion-docente gestion-docente--activa' : 'gestion-docente'}>
@@ -215,6 +230,19 @@ export function TablaCubicacion({
                             </option>
                           ))}
                         </select>
+                        {/* El catalogo marca el recurso como "por unidad" pero la fila
+                            quedo en otra Frecuencia: se avisa, no se corrige solo —
+                            cambiar el calculo a espaldas de quien cubica seria peor. */}
+                        {r.recursoPorUnidad && r.frecuencia !== 'Por unidad' && (
+                          <span
+                            className="aviso-unidad"
+                            title={AVISO_RECURSO_POR_UNIDAD}
+                            role="note"
+                            aria-label={AVISO_RECURSO_POR_UNIDAD}
+                          >
+                            ⚠ por unidad
+                          </span>
+                        )}
                       </td>
                       <td className="num">{r.estado === 'OK' ? fmt(r.hhDI) : '—'}</td>
                       <td className="num">{r.estado === 'OK' ? fmt(r.hhDG) : '—'}</td>

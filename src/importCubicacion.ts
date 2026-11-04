@@ -102,6 +102,11 @@ function comoActiva(valor: unknown): boolean {
  * pidió. Solo un "sí" explícito (con o sin tilde, o "true"/"1"/"x") la activa. */
 export const COLUMNA_GESTION_DOCENTE = 'Gestión docente (DI)';
 
+/** Columna opcional de la hoja Parametros con el N° de unidades del curso. Si falta
+ * (archivo exportado antes de que «Por unidad» multiplicara) se asume 1, que deja los
+ * totales del archivo intactos. */
+export const COLUMNA_N_UNIDADES = 'N° unidades';
+
 function comoSiExplicito(valor: unknown): boolean {
   const texto = comoTexto(valor).toLowerCase();
   return texto === 'sí' || texto === 'si' || texto === 'true' || texto === '1' || texto === 'x';
@@ -173,6 +178,13 @@ export function procesarLibroCubicacion(buffer: ArrayBuffer, catalogo: RecursoCa
     modalidad: comoTexto(filaParametros['Modalidad']),
     // Columna opcional (no está en COLUMNAS_PARAMETROS): archivos anteriores no la traen.
     gestionDocente: comoSiExplicito(filaParametros[COLUMNA_GESTION_DOCENTE]),
+    // Idem: ausente o vacía -> 1 unidad, que deja el archivo con los mismos totales.
+    nUnidades: Math.max(
+      1,
+      comoTexto(filaParametros[COLUMNA_N_UNIDADES])
+        ? comoNumero(filaParametros[COLUMNA_N_UNIDADES], 1, avisos, 'Parámetros', COLUMNA_N_UNIDADES)
+        : 1,
+    ),
   };
 
   // ── Gestion ──────────────────────────────────────────────────────────────────────

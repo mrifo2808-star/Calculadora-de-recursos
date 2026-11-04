@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { ParametrosCurso } from './types';
 import { calcularGestionDocente, desgloseGestionDocente, type GestionCalculada, type ProduccionCalculada, type Resumen } from './calc';
-import { COLUMNA_GESTION_DOCENTE } from './importCubicacion';
+import { COLUMNA_GESTION_DOCENTE, COLUMNA_N_UNIDADES } from './importCubicacion';
 
 interface DatosExport {
   parametros: ParametrosCurso;
@@ -24,13 +24,14 @@ export function descargarCubicacionExcel(datos: DatosExport): void {
       Cliente: parametros.cliente,
       'N° cursos': parametros.nCursos,
       'N° semanas': parametros.nSemanas,
+      [COLUMNA_N_UNIDADES]: parametros.nUnidades,
       Modalidad: parametros.modalidad,
       // Mismo nombre de columna que lee importCubicacion.ts, para que el toggle viaje
       // de ida y vuelta con el archivo.
       [COLUMNA_GESTION_DOCENTE]: parametros.gestionDocente ? 'Sí' : 'No',
     },
   ]);
-  hojaParametros['!cols'] = [{ wch: 28 }, { wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 20 }];
+  hojaParametros['!cols'] = [{ wch: 28 }, { wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 20 }];
 
   const gestionDocente = calcularGestionDocente(parametros.gestionDocente, parametros.nCursos, parametros.nSemanas);
 

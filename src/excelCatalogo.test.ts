@@ -152,3 +152,106 @@ describe('obtenerCatalogoDesdeSharePoint — mensajes de falla (URL configurada)
     await expect(obtener(false)).rejects.toThrow(/no se pudo leer como excel/i);
   });
 });
+
+/**
+ * Catalogo v1 (validado por las jefaturas de area, octubre 2026). Estos casos fijan el
+ * contrato con la planilla REAL de SharePoint: encabezados con tilde, con parentesis y
+ * renombrados entre ciclos. Antes el parser leia la fila por coincidencia exacta de
+ * clave y el dia que la columna paso a llamarse «Nombre visible (artefactos)» el
+ * catalogo entero dejo de leerse sin que nada lo avisara.
+ */
+describe('procesarLibroCatalogo — catalogo v1 de SharePoint', () => {
+  const FILA_V1 = {
+    Estado: 'Validado',
+    Tipo: 'Recursos multimediales',
+    'Nombre visible (artefactos)': 'Video de bienvenida/cierre',
+    Extensión: '1 min',
+    Unidad: 'minutos',
+    'DI (HH)': 0.5,
+    'DG (HH)': 1.5,
+    'SOP (HH)': 0.35,
+    'ID técnico':
+      'Recursos multimediales|Video de bienvenida/cierre|1 min|Entrega en carpeta y carga en LMS',
+    Fuente: 'Catalogo v1',
+    Alcance: 'Guion, produccion y carga',
+  };
+
+  it('lee la fila aunque el encabezado del nombre sea «Nombre visible (artefactos)»', () => {
+    const r = procesarLibroCatalogo(libroDePrueba([FILA_V1]));
+    expect(r.filasValidas).toBe(1);
+    expect(r.catalogo[0].nombreVisible).toBe('Video de bienvenida/cierre');
+  });
+
+  it('lee encabezados con tilde: «Extensión», «ID técnico»', () => {
+    const r = procesarLibroCatalogo(libroDePrueba([FILA_V1])).catalogo[0];
+    expect(r.extension).toBe('1 min');
+    expect(r.id).toContain('Entrega en carpeta y carga en LMS');
+  });
+
+  it('acepta «Alcance» como el campo de observaciones', () => {
+    const r = procesarLibroCatalogo(libroDePrueba([FILA_V1])).catalogo[0];
+    expect(r.observaciones).toBe('Guion, produccion y carga');
+  });
+
+  it('expone el alcance de entrega, que es lo unico que distingue dos filas iguales', () => {
+    const enCarpeta = {
+      ...FILA_V1,
+      'ID técnico': 'Recursos multimediales|Video de bienvenida/cierre|1 min|Entrega en carpeta',
+    };
+    const r = procesarLibroCatalogo(libroDePrueba([FILA_V1, enCarpeta]));
+    expect(r.filasValidas).toBe(2);
+    expect(r.duplicadosFusionados).toBe(0);
+    expect(r.catalogo.map((x) => x.alcanceEntrega).sort()).toEqual([
+      'Entrega en carpeta',
+      'Entrega en carpeta y carga en LMS',
+    ]);
+  });
+
+  it('convierte una hora guardada como texto con coma y espacio sin separacion', () => {
+    const sucia = { ...FILA_V1, 'SOP (HH)': ' 0,30' };
+    expect(procesarLibroCatalogo(libroDePrueba([sucia])).catalogo[0].sop).toBeCloseTo(0.3);
+  });
+
+  it('nombra los IDs duplicados y cuenta las filas descartadas', () => {
+    const sinNombre = { ...FILA_V1 } as Record<string, unknown>;
+    delete sinNombre['Nombre visible (artefactos)'];
+    const r = procesarLibroCatalogo(libroDePrueba([FILA_V1, { ...FILA_V1, 'DI (HH)': 9 }, sinNombre]));
+    expect(r.duplicadosFusionados).toBe(1);
+    expect(r.idsDuplicados).toHaveLength(1);
+    expect(r.filasDescartadas).toBe(1);
+    expect(r.catalogo[0].di).toBe(9);
+  });
+
+  it('avisa de forma explicita cuando NINGUNA fila se pudo leer', () => {
+    const sinNombre = { ...FILA_V1 } as Record<string, unknown>;
+    delete sinNombre['Nombre visible (artefactos)'];
+    const r = procesarLibroCatalogo(libroDePrueba([sinNombre, sinNombre]));
+    expect(r.filasValidas).toBe(0);
+    // El aviso global va al final: `avisos` esta ordenado por fila y la prioridad la
+    // lleva la severidad, no la posicion.
+    expect(r.avisos.every((a) => a.severidad === 'bloqueante')).toBe(true);
+    expect(r.avisos.some((a) => /ninguna pudo leerse/i.test(a.mensaje))).toBe(true);
+  });
+
+  it('clasifica los avisos por severidad y mantiene erroresFila', () => {
+    const r = procesarLibroCatalogo(libroDePrueba([{ ...FILA_V1, Estado: 'Quien sabe' }]));
+    expect(r.avisos.some((a) => a.severidad === 'dato')).toBe(true);
+    expect(r.erroresFila).toEqual(r.avisos.map((a) => a.mensaje));
+  });
+});
+
+describe('obtenerCatalogoDesdeSharePoint — catalogo vacio', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.doUnmock('./catalogoSharePoint');
+    vi.resetModules();
+  });
+
+  it('falla en vez de devolver un catalogo en blanco cuando el archivo se lee pero no deja filas', async () => {
+    const { obtenerCatalogoDesdeSharePoint: obtener } = await importarConUrl('https://proxy.example.com/c.xlsx');
+    // Un libro con filas que el parser descarta: sin Tipo ni Nombre visible.
+    const libro = libroDePrueba([{ Estado: 'Validado', Unidad: 'minutos' }]);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(libro, { status: 200 })));
+    await expect(obtener(false)).rejects.toThrow(/ninguna de sus 1 filas pudo leerse/i);
+  });
+});

@@ -6,8 +6,12 @@ export function PanelInstrucciones() {
 
       <h3>1. Parámetros del proyecto</h3>
       <p className="panel__texto">
-        Define N° de cursos y N° de semanas antes de cargar recursos: el N° de semanas es el <strong>Factor</strong>{' '}
-        que multiplica cualquier fila con Frecuencia «Por semana» (las demás frecuencias usan Factor = 1).
+        Define N° de cursos, N° de semanas y N° de unidades antes de cargar recursos. El N° de semanas es el{' '}
+        <strong>Factor</strong> de las filas con Frecuencia «Por semana», y el N° de unidades el de las filas{' '}
+        «Por unidad» (las demás frecuencias usan Factor = 1). <strong>«Por unidad»</strong> es para los recursos que
+        el catálogo cotiza por unidad del curso —los que tienen «Unidad» = <code>unidad</code>, como «Video 2D»—: la
+        tabla de Cubicación avisa con ⚠ si eliges uno de esos y dejas otra Frecuencia. Con N° de unidades en 1 los
+        totales quedan iguales a los de siempre.
       </p>
 
       <h3>2. Cubicación</h3>

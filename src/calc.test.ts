@@ -7,6 +7,8 @@ import {
   calcularProduccion,
   calcularResumen,
   desgloseGestionDocente,
+  recursoEsPorUnidad,
+  factorDe,
   factorDuracionGestion,
   HH_GESTION_DOCENTE_POR_CURSO_SEMANA,
   SEMANAS_LIMITE_GESTION_DOCENTE,
@@ -567,5 +569,191 @@ describe('Gestion docente (DI) — se suma a DI y es aditiva sobre la gestion de
     // Si entrara, los cargos base cobrarian un % de gestion sobre horas de gestion.
     expect(base).toBe(14);
     expect(totalRecursosCurso(produccion)).toBe(14);
+  });
+});
+
+/* ============================================================================
+ * Recursos «por unidad» (04-11-2026).
+ *
+ * El desplegable de Frecuencia ofrecia «Por unidad» desde siempre, pero `factorDe` la
+ * mandaba al `: 1` del final: no multiplicaba por nada, porque no habia donde declarar
+ * cuantas unidades tiene el curso. Ahora multiplica por el N° de unidades de Parametros.
+ * ========================================================================== */
+
+/** Recurso marcado "por unidad" en el catalogo (columna «Unidad» = `unidad`): en el
+ * catalogo v1 real son, entre otros, "Video 2D" y "Capsula video Docente". */
+const RECURSO_UD: RecursoCatalogo = { ...RECURSO, id: 'Video|Video 2D|1 ud', unidad: 'unidad' };
+
+const filaUd = (frecuencia: ProduccionRow['frecuencia'], over: Partial<ProduccionRow> = {}): ProduccionRow =>
+  filaProduccion({ recursoId: RECURSO_UD.id, frecuencia, ...over });
+
+describe('factorDe — «Por unidad» usa el N° de unidades', () => {
+  it('«Por unidad» devuelve el N° de unidades', () => {
+    expect(factorDe('Por unidad', 4, 3)).toBe(3);
+    expect(factorDe('Por unidad', 99, 12)).toBe(12);
+  });
+
+  it('con 1 unidad vale 1: exactamente lo que devolvia antes de este cambio', () => {
+    expect(factorDe('Por unidad', 4, 1)).toBe(1);
+    expect(factorDe('Por unidad', 4)).toBe(1); // sin el argumento, igual que la firma vieja
+  });
+
+  it('no toca las otras frecuencias', () => {
+    expect(factorDe('Por semana', 4, 3)).toBe(4); // sigue siendo las semanas
+    expect(factorDe('Por curso', 4, 3)).toBe(1);
+    expect(factorDe('Fijo', 4, 3)).toBe(1);
+  });
+
+  it('un N° de unidades invalido o negativo cuenta como 0, no rompe el calculo', () => {
+    expect(factorDe('Por unidad', 4, Number.NaN)).toBe(0);
+    expect(factorDe('Por unidad', 4, -5)).toBe(0);
+  });
+});
+
+describe('recursoEsPorUnidad — el marcador del catalogo', () => {
+  it('reconoce «Unidad» = unidad, sin importar mayusculas ni espacios', () => {
+    expect(recursoEsPorUnidad(RECURSO_UD)).toBe(true);
+    expect(recursoEsPorUnidad({ ...RECURSO, unidad: ' Unidad ' })).toBe(true);
+  });
+
+  it('las otras unidades del catalogo (minutos, paginas, slides...) no lo son', () => {
+    for (const unidad of ['minutos', 'páginas', 'slides', 'preguntas', 'criterios', 'conceptos', '']) {
+      expect(recursoEsPorUnidad({ ...RECURSO, unidad })).toBe(false);
+    }
+    expect(recursoEsPorUnidad(undefined)).toBe(false);
+  });
+
+  it('es solo informativo: NO multiplica por su cuenta (si no, se contaria dos veces)', () => {
+    // Misma fila, mismo recurso marcado "por unidad", 3 unidades declaradas: si el
+    // marcador multiplicara ademas de la Frecuencia, «Por curso» no daria el mismo
+    // total que con 1 unidad.
+    const porCurso1 = calcularProduccion([filaUd('Por curso')], 4, [RECURSO_UD], 1)[0];
+    const porCurso3 = calcularProduccion([filaUd('Por curso')], 4, [RECURSO_UD], 3)[0];
+    expect(porCurso3.total).toBe(porCurso1.total);
+    expect(porCurso3.factor).toBe(1);
+    // Y en «Por unidad» multiplica una sola vez: 3, no 9.
+    expect(calcularProduccion([filaUd('Por unidad')], 4, [RECURSO_UD], 3)[0].factor).toBe(3);
+  });
+
+  it('marca la fila calculada para que la tabla pueda avisar', () => {
+    expect(calcularProduccion([filaUd('Por curso')], 4, [RECURSO_UD], 1)[0].recursoPorUnidad).toBe(true);
+    expect(calcularProduccion([filaProduccion()], 4, [RECURSO], 1)[0].recursoPorUnidad).toBe(false);
+    // Fila sin recurso: no puede estar marcada.
+    expect(calcularProduccion([filaProduccion({ recursoId: null })], 4, [RECURSO], 1)[0].recursoPorUnidad).toBe(false);
+  });
+});
+
+describe('Por unidad — con 1 unidad los totales son IDENTICOS a los de antes', () => {
+  // Cubicacion mezclada: una fila de cada frecuencia, incluida «Por unidad», mas los 7
+  // cargos base de Gestion y un cargo fijo «Por unidad».
+  const rows: ProduccionRow[] = [
+    filaProduccion({ rowId: 'p-1', cantidad: 2, frecuencia: 'Por curso' }),
+    filaProduccion({ rowId: 'p-2', cantidad: 3, frecuencia: 'Por semana' }),
+    filaUd('Por unidad', { rowId: 'p-3', cantidad: 2 }),
+    filaProduccion({ rowId: 'p-4', cantidad: 1, frecuencia: 'Fijo' }),
+  ];
+  const catalogo = [RECURSO, RECURSO_UD];
+  const cargos = [...gestionDefault(), filaGestionFija('Cargo por unidad', 2, 1, { frecuencia: 'Por unidad' })];
+
+  const totales = (nUnidades?: number) => {
+    const produccion = calcularProduccion(rows, 4, catalogo, nUnidades);
+    const base = totalRecursosCurso(produccion);
+    const gestion = calcularGestion(cargos, 4, base, nUnidades);
+    return calcularResumen(produccion, gestion, 12, ['MODULO INICIAL (1 vez por curso)']);
+  };
+
+  it('pasar 1 unidad da el mismo Resumen que no pasar nada (la firma vieja)', () => {
+    expect(totales(1)).toEqual(totales(undefined));
+  });
+
+  it('con 1 unidad, una fila «Por unidad» tiene Factor 1 igual que «Por curso»', () => {
+    const produccion = calcularProduccion(rows, 4, catalogo, 1);
+    expect(produccion.find((r) => r.rowId === 'p-3')!.factor).toBe(1);
+    expect(produccion.find((r) => r.rowId === 'p-1')!.factor).toBe(1);
+  });
+});
+
+describe('Por unidad — caso con 3 unidades', () => {
+  const catalogo = [RECURSO, RECURSO_UD];
+  // RECURSO_UD: DI 2,5 + DG 4 + SOP 0,5 = 7 HH por unidad.
+  const soloUnidad = [filaUd('Por unidad', { cantidad: 2 })]; // 2 x 7 = 14 HH por unidad
+
+  it('triplica solo la fila «Por unidad»', () => {
+    const con1 = calcularProduccion(soloUnidad, 4, catalogo, 1);
+    const con3 = calcularProduccion(soloUnidad, 4, catalogo, 3);
+    expect(con1[0].total).toBe(14);
+    expect(con3[0].total).toBe(42);
+    expect(con3[0].factor).toBe(3);
+    expect(con3[0].hhDI).toBe(15); // 2 x 3 x 2,5
+  });
+
+  it('no toca las filas de otras frecuencias', () => {
+    const mezcla = [
+      filaProduccion({ rowId: 'p-1', cantidad: 2, frecuencia: 'Por curso' }), // 14 HH, fijo
+      filaUd('Por unidad', { rowId: 'p-2', cantidad: 2 }),
+    ];
+    const con1 = calcularProduccion(mezcla, 4, catalogo, 1);
+    const con3 = calcularProduccion(mezcla, 4, catalogo, 3);
+    expect(con3[0].total).toBe(con1[0].total); // «Por curso» intacta
+    expect(con3[1].total).toBe(con1[1].total * 3);
+    // Total de produccion: 14 (por curso) + 42 (3 unidades) = 56
+    expect(totalRecursosCurso(con3)).toBe(56);
+  });
+
+  it('un cargo de Gestion tipo fijo «Por unidad» tambien escala', () => {
+    const cargo = [filaGestionFija('Coordinacion por unidad', 2, 1.5, { frecuencia: 'Por unidad' })];
+    expect(calcularGestion(cargo, 4, 0, 1)[0].total).toBe(3); // 2 x 1 x 1,5
+    expect(calcularGestion(cargo, 4, 0, 3)[0].total).toBe(9); // 2 x 3 x 1,5
+  });
+
+  it('las HH de JP siguen saliendo de la produccion total, ya con las unidades dentro', () => {
+    const produccion = calcularProduccion(soloUnidad, 4, catalogo, 3);
+    const base = totalRecursosCurso(produccion);
+    expect(base).toBe(42); // la base ya incluye las 3 unidades
+    const jp = calcularGestion(gestionDefault(), 16, base, 3).find((c) => c.cargo === 'Gestion JP')!;
+    // 3,107 % de 42, con factor de duracion 1 a 16 semanas — el ratio no cambio.
+    expect(jp.porcentaje).toBe(3.107);
+    expect(jp.total).toBeCloseTo(42 * 0.03107, 10);
+    // Y es exactamente el triple que con 1 unidad: JP escala con la produccion.
+    const base1 = totalRecursosCurso(calcularProduccion(soloUnidad, 4, catalogo, 1));
+    const jp1 = calcularGestion(gestionDefault(), 16, base1, 1).find((c) => c.cargo === 'Gestion JP')!;
+    expect(jp.total).toBeCloseTo(jp1.total * 3, 10);
+  });
+
+  it('el Resumen completo escala la produccion por unidad sin tocar el resto', () => {
+    const resumen = (n: number) => {
+      const produccion = calcularProduccion(soloUnidad, 4, catalogo, n);
+      const gestion = calcularGestion(gestionDefault(), 16, totalRecursosCurso(produccion), n);
+      return calcularResumen(produccion, gestion, 12, ['MODULO INICIAL (1 vez por curso)']);
+    };
+    const r1 = resumen(1);
+    const r3 = resumen(3);
+    expect(r3.totalRecursosCurso).toBe(r1.totalRecursosCurso * 3);
+    // Tolerancia de 1 decimal (no 10): hhGestionCurso y los totales vienen redondeados a
+    // 2 decimales por `round2`, asi que "el triple del redondeado" no es exactamente el
+    // redondeo del triple (1,93 x 3 = 5,79 contra 5,78 reales). Es el redondeo de
+    // siempre del Resumen, no algo que introduzcan las unidades.
+    expect(r3.hhGestionCurso).toBeCloseTo(r1.hhGestionCurso * 3, 1);
+    expect(r3.totalGeneralProyecto).toBeCloseTo(r1.totalGeneralProyecto * 3, 0);
+  });
+});
+
+describe('Por unidad — migracion de parametros guardados', () => {
+  it('PARAMETROS_DEFAULT trae 1 unidad', () => {
+    expect(PARAMETROS_DEFAULT.nUnidades).toBe(1);
+  });
+
+  it('un estado guardado sin N° unidades queda en 1 (sus totales no cambian)', () => {
+    const viejo = { proyecto: 'P', cliente: 'C', nCursos: 12, nSemanas: 16, modalidad: 'Full' };
+    expect(migrarParametros(viejo as Parameters<typeof migrarParametros>[0]).nUnidades).toBe(1);
+    expect(migrarParametros(undefined).nUnidades).toBe(1);
+  });
+
+  it('conserva un N° de unidades valido y descarta uno corrupto', () => {
+    expect(migrarParametros({ nUnidades: 8 }).nUnidades).toBe(8);
+    expect(migrarParametros({ nUnidades: 0 }).nUnidades).toBe(1);
+    expect(migrarParametros({ nUnidades: -3 }).nUnidades).toBe(1);
+    expect(migrarParametros({ nUnidades: Number.NaN }).nUnidades).toBe(1);
+    expect(migrarParametros({ nUnidades: '5' as unknown as number }).nUnidades).toBe(1);
   });
 });

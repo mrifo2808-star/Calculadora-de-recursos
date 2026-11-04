@@ -2,6 +2,8 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { AVISO_GESTION_DOCENTE_PROYECTO_LARGO, AYUDA_GESTION_DOCENTE, calcularGestionDocente } from '../calc';
+import type { ProduccionRow, RecursoCatalogo } from '../types';
+import { AVISO_RECURSO_POR_UNIDAD } from './TablaCubicacion';
 import { etapasActivasDefault, gestionDefault, PARAMETROS_DEFAULT } from '../data/plantilla';
 import { TablaCubicacion } from './TablaCubicacion';
 
@@ -13,11 +15,12 @@ import { TablaCubicacion } from './TablaCubicacion';
  */
 const noop = () => {};
 
-const renderizar = (activa: boolean, nCursos: number, nSemanas: number): string =>
+const renderizar = (activa: boolean, nCursos: number, nSemanas: number, nUnidades = 1): string =>
   renderToStaticMarkup(
     createElement(TablaCubicacion, {
       rows: [],
       nSemanas,
+      nUnidades,
       catalogo: [],
       etapasActivas: etapasActivasDefault(),
       onToggleEtapa: noop,
@@ -74,5 +77,84 @@ describe('TablaCubicacion — toggle «Incluir gestión docente (DI)»', () => {
     const html = renderizar(false, 69, 69);
     expect(html).not.toContain('supera las 16 semanas');
     expect(html).not.toContain('× 0,5 HH =');
+  });
+});
+
+/* ============================================================================
+ * Recursos «por unidad» (04-11-2026): el desplegable ya ofrecia «Por unidad» pero no
+ * multiplicaba por nada. Ahora multiplica por el N° de unidades de Parametros, y la
+ * tabla avisa si el catalogo marca el recurso como por unidad y la fila quedo en otra
+ * Frecuencia.
+ * ========================================================================== */
+const RECURSO_POR_UNIDAD: RecursoCatalogo = {
+  id: 'Video|Video 2D|1 ud',
+  estado: 'Validado',
+  tipo: 'Video',
+  nombreVisible: 'Video 2D',
+  extension: '1 min',
+  unidad: 'unidad', // <- el marcador del catalogo
+  di: 1,
+  dg: 1.5,
+  sop: 0.5,
+  fuente: 'catalogo v1',
+  observaciones: '',
+};
+
+const RECURSO_NORMAL: RecursoCatalogo = { ...RECURSO_POR_UNIDAD, id: 'Video|Video After|3 min', unidad: 'minutos' };
+
+const fila = (recursoId: string, frecuencia: ProduccionRow['frecuencia']): ProduccionRow => ({
+  rowId: 'p-1',
+  seccion: 'MODULO INICIAL (1 vez por curso)',
+  tarea: 'Tarea',
+  recursoId,
+  cantidad: 1,
+  frecuencia,
+  removable: false,
+});
+
+const renderizarFilas = (rows: ProduccionRow[], nUnidades: number): string =>
+  renderToStaticMarkup(
+    createElement(TablaCubicacion, {
+      rows,
+      nSemanas: 4,
+      nUnidades,
+      catalogo: [RECURSO_POR_UNIDAD, RECURSO_NORMAL],
+      etapasActivas: etapasActivasDefault(),
+      onToggleEtapa: noop,
+      onChange: noop,
+      onAdd: noop,
+      gestionRows: gestionDefault(),
+      baseGestionHH: 0,
+      onChangeGestion: noop,
+      onAddGestion: noop,
+      gestionDocente: calcularGestionDocente(false, 1, 4),
+      onToggleGestionDocente: noop,
+    }),
+  );
+
+describe('TablaCubicacion — recursos «por unidad»', () => {
+  it('la ayuda dice cuantas unidades se estan aplicando', () => {
+    expect(renderizarFilas([], 3)).toContain('<strong>3 unidades</strong>');
+    expect(renderizarFilas([], 1)).toContain('<strong>1 unidad</strong>');
+  });
+
+  it('avisa si el recurso es por unidad y la fila quedo en otra Frecuencia', () => {
+    const html = renderizarFilas([fila(RECURSO_POR_UNIDAD.id, 'Por curso')], 3);
+    expect(html).toContain('⚠ por unidad');
+    expect(html).toContain(AVISO_RECURSO_POR_UNIDAD);
+  });
+
+  it('no avisa cuando la fila YA esta en «Por unidad» (el aviso es para corregir, no ruido)', () => {
+    expect(renderizarFilas([fila(RECURSO_POR_UNIDAD.id, 'Por unidad')], 3)).not.toContain('⚠ por unidad');
+  });
+
+  it('no avisa en un recurso que no es por unidad', () => {
+    expect(renderizarFilas([fila(RECURSO_NORMAL.id, 'Por curso')], 3)).not.toContain('⚠ por unidad');
+  });
+
+  it('«Por unidad» con 3 unidades muestra el triple de HH que con 1', () => {
+    // 1 x 3 HH/ud = 3 HH con 1 unidad; 9 HH con 3 unidades.
+    expect(renderizarFilas([fila(RECURSO_POR_UNIDAD.id, 'Por unidad')], 1)).toContain('>3</td>');
+    expect(renderizarFilas([fila(RECURSO_POR_UNIDAD.id, 'Por unidad')], 3)).toContain('>9</td>');
   });
 });

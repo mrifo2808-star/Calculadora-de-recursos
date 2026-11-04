@@ -162,7 +162,23 @@
   margin-bottom: 4px;
 }
 
-.gestion-docente__resultado .panel__hint {
+.gestion-docente__resultado /* Aviso "por unidad" junto al selector de Frecuencia (ver TablaCubicacion): el catálogo
+   marca el recurso como por unidad y la fila quedó en otra Frecuencia. */
+.aviso-unidad {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--amberbg);
+  color: var(--amber);
+  border: 1px solid #f0e0a8;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.panel__hint {
   margin: 4px 0 8px;
 }
 

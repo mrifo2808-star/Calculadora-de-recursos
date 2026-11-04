@@ -137,12 +137,22 @@ function App() {
     const gestionEnEtapaActiva = etapaActiva(estado.etapasActivas, ETAPA_GESTION) ? estado.gestion : [];
     const seccionesActivas = SECCIONES.filter((s) => etapaActiva(estado.etapasActivas, s));
 
-    const produccionCalc = calcularProduccion(produccionEnEtapasActivas, estado.parametros.nSemanas, catalogo);
+    const produccionCalc = calcularProduccion(
+      produccionEnEtapasActivas,
+      estado.parametros.nSemanas,
+      catalogo,
+      estado.parametros.nUnidades,
+    );
     // Base de los cargos de Gestion tipo 'porcentaje': el total de HH de produccion
     // (etapas activas, por curso) — se calcula ANTES de Gestion para que un cargo
     // porcentual nunca dependa de si mismo ni de otro cargo de Gestion.
     const baseGestionHH = totalRecursosCurso(produccionCalc);
-    const gestionCalc = calcularGestion(gestionEnEtapaActiva, estado.parametros.nSemanas, baseGestionHH);
+    const gestionCalc = calcularGestion(
+      gestionEnEtapaActiva,
+      estado.parametros.nSemanas,
+      baseGestionHH,
+      estado.parametros.nUnidades,
+    );
 
     const gestionParaTotales = gestionCalc.filter((r) => r.activa !== false);
     // Gestion docente estandar (toggle de Cubicacion): se suma a la linea de DI del
@@ -277,6 +287,7 @@ function App() {
         <TablaCubicacion
           rows={estado.produccion}
           nSemanas={estado.parametros.nSemanas}
+          nUnidades={estado.parametros.nUnidades}
           catalogo={catalogo}
           etapasActivas={estado.etapasActivas}
           onToggleEtapa={toggleEtapa}
