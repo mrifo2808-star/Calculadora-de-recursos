@@ -200,13 +200,24 @@ export function PanelParametros({
           />
         </label>
         <label>
+          N° unidades
+          <input
+            type="number"
+            min={1}
+            value={parametros.nUnidades}
+            onChange={(e) => set('nUnidades', Math.max(1, Number(e.target.value)))}
+            title="Unidades (módulos) del curso. Es el Factor de las filas con Frecuencia «Por unidad»."
+          />
+        </label>
+        <label>
           Modalidad
           <input type="text" value={parametros.modalidad} onChange={(e) => set('modalidad', e.target.value)} />
         </label>
       </div>
       <p className="panel__hint">
-        «N° semanas» define el Factor de las filas con Frecuencia «Por semana» (Factor = N° semanas). Las demás
-        frecuencias usan Factor = 1.
+        «N° semanas» define el Factor de las filas con Frecuencia «Por semana», y «N° unidades» el de las filas
+        «Por unidad» —las de los recursos que el catálogo cotiza por unidad del curso, con «Unidad» = <code>unidad</code>—.
+        «Por curso» y «Fijo» usan Factor = 1. Con «N° unidades» en 1 los totales son los mismos de siempre.
       </p>
       {mostrarAcciones && (
       <p className="panel__hint">

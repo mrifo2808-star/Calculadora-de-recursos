@@ -22,6 +22,13 @@ export interface RecursoCatalogo {
 
 export type Frecuencia = 'Por curso' | 'Por semana' | 'Por unidad' | 'Fijo';
 
+/** Valor exacto de la columna «Unidad» del catálogo con el que se marca un recurso que
+ * se cotiza por unidad del curso (hoja Catalogo de `catalogo-welearn-v1.xlsx`; los demás
+ * valores son la unidad de la extensión: «páginas», «minutos», «slides», «preguntas»…).
+ * Es solo un marcador informativo: quien multiplica es la Frecuencia «Por unidad» de la
+ * fila — ver `recursoEsPorUnidad` y `factorDe` en calc.ts. */
+export const UNIDAD_CATALOGO_POR_UNIDAD = 'unidad';
+
 export const FRECUENCIAS: Frecuencia[] = ['Por curso', 'Por semana', 'Por unidad', 'Fijo'];
 
 export interface ProduccionRow {
@@ -67,6 +74,12 @@ export interface ParametrosCurso {
   nCursos: number;
   nSemanas: number;
   modalidad: string;
+  /** N° de unidades del curso (módulos / unidades de aprendizaje). Es el Factor de las
+   * filas con Frecuencia «Por unidad», igual que `nSemanas` lo es de «Por semana» — ver
+   * `factorDe` en calc.ts. Por defecto 1, que deja los totales idénticos a como estaban
+   * antes de que «Por unidad» hiciera algo. Ausente en estados guardados / Excel
+   * anteriores: se trata como 1 (ver `migrarParametros` e importCubicacion.ts). */
+  nUnidades: number;
   /** Toggle «Incluir gestión docente (DI)» de la pestaña Cubicación: suma 0,5 HH por
    * curso por semana a la línea de DI (ver `calcularGestionDocente` en calc.ts). Apagado
    * por defecto. Ausente en estados guardados / Excel de antes de esta funcionalidad:

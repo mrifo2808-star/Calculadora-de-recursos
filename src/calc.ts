@@ -1,9 +1,38 @@
 import { recursoPorId } from './data/catalogo';
 import { fmt } from './format';
-import type { Frecuencia, GestionRow, ProduccionRow, RecursoCatalogo } from './types';
+import { UNIDAD_CATALOGO_POR_UNIDAD, type Frecuencia, type GestionRow, type ProduccionRow, type RecursoCatalogo } from './types';
 
-export const factorDe = (frecuencia: Frecuencia, nSemanas: number): number =>
-  frecuencia === 'Por semana' ? nSemanas : 1;
+/**
+ * Factor que multiplica a Cantidad × HH unitarias en una fila de Cubicación (y en un
+ * cargo de Gestión tipo 'fijo'), según su Frecuencia:
+ *
+ *   - «Por semana» → N° semanas del proyecto
+ *   - «Por unidad» → N° unidades del curso (04-11-2026)
+ *   - «Por curso» / «Fijo» → 1
+ *
+ * «Por unidad» ya se ofrecía en el desplegable desde siempre, pero caía en el `: 1` del
+ * final y no hacía nada: el catálogo marca recursos que se cotizan por unidad (columna
+ * «Unidad» = `unidad`) y en la calculadora no había dónde decir cuántas unidades tiene
+ * el curso. `nUnidades` por defecto es 1, así que una cubicación anterior da exactamente
+ * los mismos totales que antes de este cambio.
+ *
+ * Un valor no finito o negativo se trata como 0 (misma política que el resto del
+ * archivo); `nSemanas` se mantiene tal cual venía, sin saneo, para no cambiar ningún
+ * total existente.
+ */
+export const factorDe = (frecuencia: Frecuencia, nSemanas: number, nUnidades = 1): number => {
+  if (frecuencia === 'Por semana') return nSemanas;
+  if (frecuencia === 'Por unidad') return Number.isFinite(nUnidades) ? Math.max(0, nUnidades) : 0;
+  return 1;
+};
+
+/** true si el catálogo marca este recurso como "se cotiza por unidad" (columna «Unidad»
+ * = `unidad`). Es informativo: sirve para avisar en la tabla que a esa fila probablemente
+ * le corresponde Frecuencia «Por unidad». NO multiplica por su cuenta — si multiplicara
+ * además de la Frecuencia, un recurso marcado así y puesto en «Por unidad» contaría las
+ * unidades dos veces. */
+export const recursoEsPorUnidad = (recurso: RecursoCatalogo | undefined): boolean =>
+  (recurso?.unidad ?? '').trim().toLowerCase() === UNIDAD_CATALOGO_POR_UNIDAD;
 
 /* ============================================================================
  * FACTOR DE DURACION DE LOS CARGOS BASE DE GESTION (10-09-2026)
@@ -82,21 +111,37 @@ export interface ProduccionCalculada extends ProduccionRow {
   total: number;
   estado: EstadoFila;
   etiquetaRecurso: string;
+  /** El catálogo marca este recurso como "por unidad" (columna «Unidad» = `unidad`).
+   * Informativo: la tabla avisa si la fila no está en Frecuencia «Por unidad». */
+  recursoPorUnidad: boolean;
 }
 
+/** `nUnidades` (opcional, 1 por defecto) es el N° de unidades del curso: el Factor de las
+ * filas con Frecuencia «Por unidad». Omitirlo deja el cálculo idéntico al anterior. */
 export function calcularProduccion(
   rows: ProduccionRow[],
   nSemanas: number,
   catalogo: RecursoCatalogo[],
+  nUnidades = 1,
 ): ProduccionCalculada[] {
   return rows.map((r) => {
     const recurso = recursoPorId(catalogo, r.recursoId);
-    const factor = factorDe(r.frecuencia, nSemanas);
+    const factor = factorDe(r.frecuencia, nSemanas, nUnidades);
     const cantidad = Number.isFinite(r.cantidad) ? Math.max(0, r.cantidad) : 0;
 
     if (!recurso) {
       const estado: EstadoFila = r.tarea.trim() ? 'PENDIENTE DE CATALOGAR' : 'VACIA';
-      return { ...r, factor, hhDI: 0, hhDG: 0, hhSOP: 0, total: 0, estado, etiquetaRecurso: '' };
+      return {
+        ...r,
+        factor,
+        hhDI: 0,
+        hhDG: 0,
+        hhSOP: 0,
+        total: 0,
+        estado,
+        etiquetaRecurso: '',
+        recursoPorUnidad: false,
+      };
     }
 
     const hhDI = cantidad * factor * (recurso.di ?? 0);
@@ -111,6 +156,7 @@ export function calcularProduccion(
       total: hhDI + hhDG + hhSOP,
       estado: 'OK',
       etiquetaRecurso: etiquetaCompleta(recurso),
+      recursoPorUnidad: recursoEsPorUnidad(recurso),
     };
   });
 }
@@ -132,10 +178,17 @@ export interface GestionCalculada extends GestionRow {
  *
  * Un cargo 'porcentaje' agregado a mano NO lo lleva (factor 1): sigue siendo un % plano
  * de la produccion, como antes. */
-export function calcularGestion(rows: GestionRow[], nSemanas: number, baseHH: number): GestionCalculada[] {
+export function calcularGestion(
+  rows: GestionRow[],
+  nSemanas: number,
+  baseHH: number,
+  nUnidades = 1,
+): GestionCalculada[] {
   return rows.map((r) => {
     if (r.tipo === 'fijo') {
-      const factor = factorDe(r.frecuencia, nSemanas);
+      // Un cargo 'fijo' usa la misma tabla de factores que una fila de Cubicacion, asi
+      // que tambien puede ser «Por unidad». Los cargos % no: su factor es el de duracion.
+      const factor = factorDe(r.frecuencia, nSemanas, nUnidades);
       const cantidad = Number.isFinite(r.cantidad) ? r.cantidad : 0;
       return { ...r, factor, total: cantidad * factor * (r.hhUnitaria || 0) };
     }

@@ -15,6 +15,9 @@ export const PARAMETROS_DEFAULT: ParametrosCurso = {
   cliente: 'Cliente Demo',
   nCursos: 1,
   nSemanas: 4,
+  // 1 unidad = el Factor de «Por unidad» vale 1, o sea el mismo total que antes de que
+  // esa Frecuencia hiciera algo (ver factorDe en calc.ts).
+  nUnidades: 1,
   modalidad: 'Full',
   // Apagado por defecto: la gestión docente estándar solo se suma si quien cubica la
   // activa a mano en la pestaña Cubicación (ver calcularGestionDocente en calc.ts).
@@ -29,7 +32,14 @@ export const migrarParametros = (guardado: Partial<ParametrosCurso> | undefined)
   ...PARAMETROS_DEFAULT,
   ...guardado,
   gestionDocente: guardado?.gestionDocente === true,
+  // Un estado guardado antes del N° unidades no lo trae: 1 deja su cubicación con los
+  // mismos totales que tenía. Un valor corrupto (texto, 0, negativo) cae al default por
+  // la misma razón — nunca debe bajar silenciosamente las horas de una cubicación vieja.
+  nUnidades: unidadesValidas(guardado?.nUnidades) ? Number(guardado?.nUnidades) : PARAMETROS_DEFAULT.nUnidades,
 });
+
+/** N° de unidades utilizable: entero o decimal finito ≥ 1 (el mínimo del input). */
+const unidadesValidas = (n: unknown): boolean => typeof n === 'number' && Number.isFinite(n) && n >= 1;
 
 /* ============================================================================
  * CARGOS BASE DE GESTION — van SIEMPRE en todo proyecto, con este porcentaje fijo
